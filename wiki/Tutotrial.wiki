@@ -1,14 +1,60 @@
-#summary One-sentence summary of this page.
+#summary Getting started with OJS
 #labels Featured
 
-= Introduction =
+= Why Use OJS =
 
-Add your content here.
+== Because Rails Doesn't Take JavaScript Seriously ==
 
+The default approach to JavaScript in Rails is to rely on various helpers to perform a relatively simple and common tasks such as updating an area of the page with AJAX, applying an effect and so forth. As long as what you need doing is something the javascript helpers anticipated, the system is very easy to use and you can often get away without writing a single line of actual Javascript.  However, as soon as you stray from the most common use-case path, calls to these helpers begin to grow into multi-step callback responders, with complicated rules and a truly _frightening_ amount of repetition. 
 
-= Details =
+Consider the "simple and common" task of showing/hiding a loading indicator (which is not _explicitly_ provided by the Rails javascript helpers):
 
-Add your content here.  Format your content with:
-  * Text in *bold* or _italic_
-  * Headings, paragraphs, and lists
-  * Automatic links to other wiki pages
+{{{
+
+<%= 
+      link_to_remote "Recall this invitation",  {
+          :url=> invitation_url(unclaimed_invitation.id), 
+          :method=>:delete, 
+          :before=>"$('unclaimed_invitation_#{unclaimed_invitation.id}_loading_indicator').show();",
+          :condition=>"!$('unclaimed_invitation_#{unclaimed_invitation.id}_loading_indicator').visible()"
+      }, {:class=>"invitation_withdraw"} 
+%>
+}}}
+
+This code resides in the 'view' portion of our otherwise clean MVC architecture yet clearly there is logic inside it (the :condition param really should be a tip-off), which is something views should avoid. Even worse, it only contains half of the view logic. The other half is found in the controller:
+
+{{{
+    render :update do |page|
+      page.visual_effect :fade, "invitation_#{params[:id]}"
+      if @initial_invitation_count == 1
+        page.replace_html "unclaimed_invitations", :partial => "no_unclaimed_invitations"
+      end
+      if @initial_invites_left == 0
+        page.replace_html "invite_box", :partial=>"invitation_form"
+      else
+        page.replace_html "invite_count", @invites_left
+      end
+      page.replace_html "small_invite_count", @invites_left
+    end
+}}}
+
+There is no clear separation of concerns at all - both the view and the controller are being involved in this "UI behavior"  yet neither can reliably be assumed to be responsible for it. Whenever you need to modify how a certain javascript action behaves, you need to work with: 
+
+  # The  html element in the view that triggers an action
+  # The controller action that that is being called
+  # Any external js source files that might be involved.
+
+Along the same lines, refactoring just a controller or just a view for unrelated reasons can very easily break a view. All 3 components (controllers, views and javascript code) are coupled quite tightly in ways that are difficult to recognize while looking at just one of them.
+
+What about modularity? Showing/hiding a loading indicator seems like something we could easily extract for reuse, but how would we do it? We could create a set of extended javascript helpers but that has significant overhead (they really aren't designed for this). We could call functions in our callbacks, which make life a little easier, but for the most part you are still left with fairly ugly JS code in your view (and a lot of view logic is still living in a controller). It is also not clear how all these functions should be organized (which in turn makes it hard to track them down later).
+
+All of the above problems stem from the fact that Rails, as things stand, treats JavaScript as an obstacle: the helpers  go out of their way to "shield" you from actual JavaScript code. You are encouraged to reduce your use of javascript to cases trivial enough for the helpers to handle. This is sufficient for many sites, but as with the loading indicator case above, it can break down spectacularly fast. 
+
+== Because Event  Selectors Are Too Slow And We Can Do Better ==
+
+The logical conclusion to all these complaints is that if we're going to do "serious" JavaScript we really ought to separate it in it's own layer (which has often been dubbed the _Behavior_ layer). Libraries like Behavior.js and the UJS plugin do this by letting you apply event handling functions CSS-like "event-selectors". Something like  `on("a.recall:click", function(event) { ... } )`. A significant improvement. JavaScript code is _mostly_ in one place and more opportunities for reuse arise. 
+
+Having said that, it is still somewhat unclear how to organize behavior into modules. This approach inherits much of the haphazard placement of definitions from CSS files (i.e. there are many ways a developer might choose to organize definitions across and within files, most of them arbitrary). It is difficult to come up with an intuitive and predictable organization scheme. 
+
+Finally, since the event selectors have to be parsed and processed by javascript code that is inherently prone to slow down as page size and complexity increases, this approach is often ruled out for large/complicated pages for purely practical reasons. 
+
