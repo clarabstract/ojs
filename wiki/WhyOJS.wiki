@@ -60,4 +60,4 @@ Having said that, it is still somewhat unclear how to organize behavior into mod
 Finally, since the event selectors have to be parsed and processed by !JavaScript code that is inherently prone to slow down as page size and complexity increases, this approach is often ruled out for large/complicated pages for purely practical reasons. 
 
 
-If any of this managed to sound convincing, move on to to the [Tutorial] page.
+If any of this managed to sound convincing, move on to to the [Guide] page.
