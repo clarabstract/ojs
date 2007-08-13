@@ -1,0 +1,18 @@
+#summary Getting started with OJS
+#labels Featured,Documentation
+
+If you haven't already done so, it would probably help to read the [WhyOJS] page first.
+
+= Installation = 
+
+TODO (but roughly speaking will entail `script/plugin <this svn repo>` and `rake ojs:install` to copy the javascript files into your project)
+
+= What Is On A Page ? =
+
+Let us try to describe a 'typical' javscript-heavy page. I will use this  [http://flickr.com/photos/rinajodk/1091349488/ random flickr page] as an example, but any non-trivial page would do just as well. What is it composed of?
+
+Well, there is a *_picture_* in the middle. Inside the picture that are some *_annotations_*. On the right there are several *_picture flip books_* (which this particular picture is part of), followed by several *_tags_* for this picture.  Below the *_picture_* there are *_comments_*. Each *_comment_* has an *_author_*, an *_avatar_* and a *_date_*. 
+
+Each highlighted word is a distinct area of the page. We could call them  "components" or perhaps  "elements" or "widgets". Unfortunately, terminology in the web design domain is a rather crowded affair, and all these words already have ulterior meanings. 
+
+Whatever we call them, these things clearly do have some useful common properties. 
