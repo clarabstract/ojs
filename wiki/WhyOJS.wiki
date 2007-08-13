@@ -1,4 +1,4 @@
-#summary The unpleasant itching sensation caused by Rails, JavaScript and UJS
+#summary The unpleasant itching sensation caused by Rails, JavaScript and UJS.
 #labels Featured,Documentation
 
 
