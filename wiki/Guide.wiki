@@ -13,6 +13,124 @@ Let us try to describe a 'typical' javscript-heavy page. I will use this  [http:
 
 Well, there is a *_picture_* in the middle. Inside the picture that are some *_annotations_*. On the right there are several *_picture flip books_* (which this particular picture is part of), followed by several *_tags_* for this picture.  Below the *_picture_* there are *_comments_*. Each *_comment_* has an *_author_*, an *_avatar_* and a *_date_*. 
 
-Each highlighted word is a distinct area of the page. We could call them  "components" or perhaps  "elements" or "widgets". Unfortunately, terminology in the web design domain is a rather crowded affair, and all these words already have ulterior meanings. 
+Each highlighted word is a distinct area of the page, even to a non-technical person. They are obviously series of similar items. Each *_picture flip book_* operates the same as any other *_picture flip book_* but with different content (that is still similar in structure - in this instance, a series of pictures). 
 
-Whatever we call them, these things clearly do have some useful common properties. 
+Being programmers, we have better terms for these things. The highlighted words are obviously classes (or least, data-structures) being represented on the page. More specifically, in MCV parlance, they are Views for various Models. Models simply contain data and relationships, whereas Views represent the Model's data as HTML. (and we can have more then one way to view a model, for instance, a thumbnail view for Picture model). Even the empty comment form at the bottom of the page (if you are logged in) is a View for a Comment (model) that has not yet been created.
+
+This is not a radical or even terribly interesting observation, but it bears restating in the case of Rails. Rails does employ an MCV architecture, but it only really does so at the page level. The *whole page* is a representation of a Picture model and it's associated data (like comments, flip books, tags etc). However, the views for the associated data (like the flip books) do not stand on their own - they are simply "sub-views". Further, controllers are strictly a server-side affair - Rails controllers are only concerned with http requests, not client-side interactions. 
+
+The point of this exercise is to note that:
+
+ # We have a lot of view-like objects on the page (that Rails does not actually recognize as objects)
+ # These view-like objects have no controllers-like objects to go along with them on the client side
+
+MCV just doesn't seem to work in a straight-forward fashion when we deal with applications.
+
+It should be as simple as:
+{{{
+Views --interact_with-> Controllers --interact_with-> Models. 
+}}}
+
+But what we need is  actually more like:
+
+{{{
+Views --interact_with-> LocalControllers --interact_with--> RemoteControllers --interact_with-> Models
+}}}
+
+Which, if I was an unscrupulous consultant, I  could call "MRCLCV architecture" and charge $500/hr to discuss with you or your company, so that you can buy my "MRCLCV compliant framework" for $35,000 per developer seat and of course a few dozen "MRCLCV In A Nutshell" books to go with that. 
+
+Instead, you get it all for free, through this very library.
+
+^(Except the one-on-one consulting. For now... Hmm.)^
+
+= Html Representations =
+
+The very first thing you're going to be doing with OJS that is different from 'vanilla' Rails is to deal with these sub-views in a way that is more like view-objects. This is done with the OJS::HtmlRepresentation module. It provides a single new view helper:`rep()`.
+
+`rep` wraps any hash-like object (i.e. that responds to `:[]`, and yes, this includes ActiveRecord descendants) in a Representation object that is then used to create the actual HTML. 
+
+Here we create a representation for a comment:
+
+{{{
+<% rep(comment, :inline_comment).tag :div do |c| %>
+   <% c[:header].tag :div do %>
+       <%= c[:title].tag :h2 %>
+       by <%= c[:author].tag :span %>
+       <%= time_ago_in_words c[:created_at].value %> ago.
+   <% end %>
+   <%= c[:body].tag :p %>
+<% end %>
+}}}
+
+This generates the following html:
+
+{{{
+<div class="inline_comment comment" id="inline_comment_23">
+   <div class="inline_comment comment header " id="inline_comment_23_header">
+       <h2 class="inline_comment comment title " id="inline_comment_23_title">I hate bottles.</h2>
+       by <span class="inline_comment comment author " id="inline_comment_23_author">Philip J. Fry</span>
+       2 days ago.
+   </div>
+
+   <p class="inline_comment comment body " id="inline_comment_23_body">What have they ever done for me anyway?</p>
+</div>
+}}}
+
+Let's look at what happened in detail:
+
+==== The 'housekeeping chore' of settings proper HTML IDs and class names was taken care of for us. ====
+
+CSS is easily applied to all `.inline_comment`s (which is a particular representation of comment objects) or all `.comment` representations everywhere  (or perhaps more usefully, all `.comment.author`s)
+
+The IDs are a reliable way for JavaScript to recognize that all of the above elements are representations of a Comment, with id 23, and that an element like `#inline_comment_23_author` represents that comment's author name. _This effectively makes HTML representations a limited form of object  serialization that can be used by JavaScript._
+
+==== Representations can have attributes that don't actually exist in the object they represent. ====
+ 
+(For instance `:header`)
+
+This is good.  We want representations to be a richer, view-specific data structure then the object they represent.
+
+==== Representations have a name that is independent from the class of the object they represent. ====
+
+This particular representation is named `:inline_comment`. We could also have `:mini_comment` or `:new_comment_form` or `:edit_comment_form`, but they would all know that they represent the class `Comment`.
+
+The full call signature for for `rep` is:
+{{{
+def rep(for_object = nil, representation_name = nil, object_class = nil)
+}}}
+
+As you can see, all arguments are optional.
+
+ * The `object_class` is usually inferred from the `for_object`'s class name.
+
+ * The `representation_name` is guessed from the calling partial's name if omitted (i.e. representations in `_inline_comment.rhtml` will have a default name of `:inline_comment`).
+
+ * If the `for_object`is nil, the new object placeholder `{:id=>'N'}` is used instead. This is usually the case for building a form for an empty object.  The `object_class` is guessed from the partial's containing folder (i.e. representations in `RAILS_ROOT/app/views/comments/*` will assume an `object_class` of `comment` for blank objects.
+
+Having said that it is good practice to always pass the first argument anyway, preferably as a local with the same name as the partial. This is because rails _always_ defines that variable (it's whatever you pass to `render :template=>"...", :object=>`, and if nothing was passed, it still gets defined to `nil`).  This will make the whole statement clearer _and_ makes it easy to pre-fill a form if needed (like after validation failure).
+
+==== ... and more! ====
+
+Representations have many methods other then `.tag`. There are wrappers for most of the form builder helpers. Whenever a URL is needed (forms, links) it can usually be guessed from the class name provided you are using RESTful routes (and if not, why aren't you?), or an attribute value (if it looks like a URL for instance). 
+
+The guiding philosophy behind the HtmlRepresentation module is to:
+
+ # Enforce the HTML ID standards (which comes in handy for JavaScript in a *big* way, as we will soon see)
+ # Make reasonable assumptions about html element attributes and values by inspecting the host object and the environment in which it was called. 
+
+See OJS::HtmlRepresentation::TagBuilder, OJS::HtmlRepresentation::Representation and OJS::HtmlRepresentation::AttributeRepresentation for more information.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
