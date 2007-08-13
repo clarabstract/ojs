@@ -1,0 +1,31 @@
+OJS is a library that allows you to deal with individual 'components' (like a login form, a div representing a comment, a grid, etc.) on a page as objects, with classes, inheritance and all that OOP goodness.
+
+State
+
+ALPHA 0.000000001
+
+Introduction
+
+For a nice introduction, see WhyOJS and Guide.
+
+For a dense and jargon-filled introduction, see below.
+
+Executive Summary
+
+Ostensibly, this simply means separating the "behavior" layer of your page from the structural HTML itself, much like CSS separates the visual presentation layer. The idea is in line with other approaches to "unobtrusive javascript" (google it).
+
+OJS does this in a way more familiar to object-oriented (desktop) GUI development. It allows you to define controller classes, which receive events from a particular group of elements on the page, perform high level operations with the group as a whole, and store relevant state information. This is a much more maintainable and modular approach than inline javascript, and even the "event selector" approach (a.k.a. Behavior.js) which, although a big step up, still doesn't make it easy to deal with "components" on the page as a cohesive unit.
+
+OJS makes extensive use of classes and inheritance to provide common functionality out of the box. For instance, if all your form controllers inherit from the built-in FormController? class, validation, loading indicators and error notification methods will become available and you can deal with them in a neatly consistent fashion. You could also inherit from AjaxFormController? instead ( a subclass of FormController?) which simply performs an AJAX request instead of refreshing the page (and provides additional callbacks for handling responses).
+
+To make all of this practical, OJS also provides a number of tools (available in a rails plugin):
+
+1) The OJS Translator allows you to write your JavaScript? code using actual class declarations ("class Foo : Bar { ... }") with super() calls and class method inheritance. It also provides some much-needed syntax sugar, such as Ruby-style string interpolation ( #"Hello #{user.name}" ), unless statements (negated if), #foreach (simple macro for efficient native loops, when prototype's .each() is needless overhead).
+
+2) JavaScript? event-dispatching, which is a very efficient way of handling events for a large number of elements on a page without extensive processing on page load ("event selector" approaches can noticeably slow down page load when applicable and dealing with large pages). The event-dispatcher uses event-bubbling and an HTML ID naming convention to handle any number of events with just one page-wide event listener.
+
+3) The OJS Loader, which dynamically creates packages from many JS files (OJS tends to encourage many small JS, specialized files, instead of a few monolithic ones), limiting JS-file requests to the server to 3 per page, while balancing needless re-downloading and caching.
+
+4) A set of Rails view helpers that make it easy to write HTML using the ID conventions. (They also provide functionality similar to Rails' built-in form helpers, such as pre-filling field values in an edit form)
+
+5) (Coming Soon™) HTML templates that can be shared between Ruby and Javascript (i.e., you can create HTML using just Javascript, from the same template Ruby uses on the server side without an AJAX call). They work within RHTML and the above-mentioned view helpers, but only support a very minimal amount of 'smarts'.
