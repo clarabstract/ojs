@@ -5,7 +5,7 @@ If you haven't already done so, it would probably help to read the [WhyOJS] page
 
 = Installation = 
 
-TODO (but roughly speaking will entail `script/plugin <this svn repo>` and `rake ojs:install` to copy the javascript files into your project)
+TODO (but, roughly speaking, will entail `script/plugin <this svn repo>` and `rake ojs:install` to copy the javascript files into your project)
 
 = What Is On A Page ? =
 
@@ -119,7 +119,6 @@ The guiding philosophy behind the HtmlRepresentation module is to:
  # Make reasonable assumptions about html element attributes and values by inspecting the host object and the environment in which it was called. 
 
 See OJS::HtmlRepresentation::TagBuilder, OJS::HtmlRepresentation::Representation and OJS::HtmlRepresentation::AttributeRepresentation for more information.
-
 
 
 
