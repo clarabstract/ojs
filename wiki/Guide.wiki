@@ -17,7 +17,7 @@ Each highlighted word is a distinct area of the page, even to a non-technical pe
 
 Being programmers, we have better terms for these things. The highlighted words are obviously classes (or, at least, data-structures) being represented on the page. More specifically, in MCV parlance, they are Views for various Models. Models simply contain data and relationships, whereas Views represent the Model's data as HTML (and we can have more then one way to view a model. For instance, a thumbnail view for a Picture model). Even the empty comment form at the bottom of the page (if you are logged in) is a View for a Comment (model) that has not yet been created.
 
-This is not a radical or even terribly interesting observation, but it bears restating in the cases where Rails is used. Rails does employ an MCV architecture, but it only really does so at the page level. The *whole page* is a representation of a Picture model and its associated data (like comments, flip books, tags etc.). However, the views for the associated data (like the flip books) do not stand on their own - they are simply "sub-views". Further, controllers are strictly a server-side affair - Rails controllers are only concerned with http requests, not client-side interactions. 
+This is not a radical or even terribly interesting observation, but it bears restating in the case of Rails. Rails does employ an MCV architecture, but it only really does so at the page level. The *whole page* is a representation of a Picture model and its associated data (like comments, flip books, tags etc.). However, the views for the associated data (like the flip books) do not stand on their own - they are simply "sub-views". Further, controllers are strictly a server-side affair - Rails controllers are only concerned with http requests, not client-side interactions. 
 
 The point of this exercise is to note that:
 
@@ -34,7 +34,7 @@ Views --interact_with-> Controllers --interact_with-> Models.
 But what we need is actually more like:
 
 {{{
-Views --interact_with-> LocalControllers --interact_with--> RemoteControllers --interact_with-> Models
+Views --interact_with-> !LocalControllers --interact_with--> !RemoteControllers --interact_with-> Models
 }}}
 
 Which, if I was an unscrupulous consultant, I could call "MRCLCV architecture," and charge $500/hr to discuss it with you or your company, so that you could buy my "MRCLCV compliant framework" for $35,000 per developer seat, and of course a few dozen "MRCLCV In A Nutshell" books to go with that. 
@@ -45,20 +45,20 @@ Instead, you get it all for free, through this very library.
 
 = HTML Representations =
 
-The very first thing you're going to be doing with OJS that is different from 'vanilla' Rails is to deal with these sub-views in a way that is more like view-objects. This is done with the OJS::HtmlRepresentation module. It provides a single new view helper:`rep()`.
+The very first thing you're going to be doing with OJS that is different from 'vanilla' Rails is to deal with these sub-views in a way that is more like using proper view-classes, but still works within the familiar partial system. This is done with the OJS::!HtmlRepresentation module. It provides a single new view helper:`rep()`.
 
-`rep` wraps any hash-like object (i.e., one that responds to `:[]`, and yes, this includes ActiveRecord descendants) in a Representation object that is then used to create the actual HTML. 
+`rep` wraps any hash-like object (i.e., one that responds to `:[]`, and yes, this includes !ActiveRecord descendants) in a Representation object that is then used to create the actual HTML. 
 
 Here we create a representation for a comment:
 
 {{{
-<% rep(comment, :inline_comment).tag :div do |c| %>
-   <% c[:header].tag :div do %>
-       <%= c[:title].tag :h2 %>
-       by <%= c[:author].tag :span %>
-       <%= time_ago_in_words c[:created_at].value %> ago.
+<% rep(comment, :inline_comment).div do |c| %>
+   <% c[:header].div do %>
+       <%= c[:title].h2 %>
+       by <%= c[:author].span %>
+       <%= invitation[:created_at].as(:time_ago_in_words).span %> ago.
    <% end %>
-   <%= c[:body].tag :p %>
+   <%= c[:body].p %>
 <% end %>
 }}}
 
@@ -66,10 +66,13 @@ This generates the following HTML:
 
 {{{
 <div class="inline_comment comment" id="inline_comment_23">
-   <div class="inline_comment comment header " id="inline_comment_23_header">
-       <h2 class="inline_comment comment title " id="inline_comment_23_title">I hate bottles.</h2>
-       by <span class="inline_comment comment author " id="inline_comment_23_author">Philip J. Fry</span>
-       2 days ago.
+   <div class="inline_comment comment header" id="inline_comment_23_header">
+       <h2 class="inline_comment comment title" id="inline_comment_23_title">I hate bottles.</h2>
+       by 
+       <span class="inline_comment comment author" id="inline_comment_23_author">Philip J. Fry</span>
+       <span class="inline_comment comment created_at_as_time_ago_in_words hidden" id="inline_comment_23_created_at_as_time_ago_in_words">2 days</span>
+       <input type="hidden" value="Fri Aug 17 08:13:06 UTC 2007" class="inline_comment_23_created_at" id="inline_comment comment created_at" />
+       ago.
    </div>
 
    <p class="inline_comment comment body " id="inline_comment_23_body">What have they ever done for me anyway?</p>
@@ -82,13 +85,15 @@ Let's look at what happened, in detail:
 
 CSS is easily applied to all `.inline_comment`s (which is a particular representation of comment objects) or all `.comment` representations (or perhaps more usefully, all `.comment.author`s).
 
-The IDs are a reliable way for JavaScript to recognize that all of the above elements are representations of a Comment, with id 23, and that an element like `#inline_comment_23_author` represents that comment's author name. _This effectively makes HTML representations a limited form of object  serialization that can be used by JavaScript._
+The IDs are a reliable way for !JavaScript to recognize that all of the above elements are representations of a Comment, with id 23, and that an element like `#inline_comment_23_author` represents that comment's author name. _This effectively makes HTML representations a limited form of object serialization that can be used by !JavaScript._
 
 ==== Representations can have attributes that don't actually exist in the object they represent. ====
  
 (For instance `:header`)
 
 This is good.  We want representations to be a richer, more view-specific data structure than the object they represent.
+
+We also see how we can have view-specific transformations of the underlying data (the `.as(:time_ago_in_words)` call) which still preserve the original value in a hidden field. 
 
 ==== Representations have a name that is independent from the class of the object they represent. ====
 
@@ -111,24 +116,124 @@ Having said that it is good practice to always pass the first argument anyway, p
 
 ==== ... and more! ====
 
-Representations have many methods other then `.tag`. There are wrappers for most of the form builder helpers. Whenever a URL is needed (forms, links) it can usually be guessed from the class name provided you are using RESTful routes (and if not, why aren't you?), or an attribute value (if it looks like a URL for instance). 
+Representations can, of course, generate almost any HTML4 tag and helpers similar to Rails' own FormBuilder are provided for most form fields. Whenever a URL is needed (forms, links) it can usually be guessed from the class name provided you are using RESTful routes (and if not, why aren't you?).
 
-The guiding philosophy behind the HtmlRepresentation module is to:
+The guiding philosophy behind the !HtmlRepresentation module is to:
 
- # Enforce the HTML ID standards (which comes in handy for JavaScript in a *big* way, as we will soon see).
- # Make reasonable assumptions about HTML element attributes and values by inspecting the host object and the environment in which it was called. 
+ # Enforce the HTML ID standards (which comes in handy for !JavaScript in a *big* way, as we will soon see).
+ # Make reasonable assumptions about HTML element's attributes and values by inspecting the host object and the environment in which it was called. 
 
-See OJS::HtmlRepresentation::TagBuilder, OJS::HtmlRepresentation::Representation and OJS::HtmlRepresentation::AttributeRepresentation for more information.
+The modules inside OJS::!HtmlRepresentation, especially OJS::!HtmlRepresentation::!TagBuilder provide this functionality. Consult their rdocs for more detail.
 
+= !JavaScript Controllers and the OJS Language =
 
+Now that we have an easy way to map data models on the server into HTML tags using a consistent naming scheme, we can write !JavaScript code that takes advantage of this, using !JavaScript Controller classes. 
 
+A !JavaScript Controller is really nothing more then the event handler for a particular representation. For instance, "inline_comment_23" defers all its events to the !JavaScript Controller class !InlineComment. A click on "inline_comment_23" would be handled by an 'on_click' instance method of the !InlineComment controller class. A click on a comment's title (like "inline_comment_23_title") would be handled by an instance method called 'on_title_click'. 
 
+In addition to this, each particular instance of inline_comment gets its own instance of InlineComment as well, meaning you can keep track of state for a particular representation inside your controller code. You can also have instance methods to work with a particular instance of a representation. Many such methods are provided for you. For instance, in your `on_title_click` event handler you can get the corresponding author element using `this.$('author')`. 
 
+Before going into the details of the controller system, note that this approach to !JavaScript is somewhat demanding in terms of OO features it requires. !JavaScript's prototype-based OO does not provide things like inheritance with super-method calls or inheritable 'class methods'. OJS provides a library that adds these features to !JavaScript, however, it still isn't quite as natural to use as languages that provide these OO features out of the box. To get around this problem, and also deal with some other other annoyances of JavaScript, we introduce a slightly modified JavaScript syntax that gets translated into normal JavaScript on-demand. 
 
+== The OJS Language == 
 
+OJS is simply !JavaScript with some macros applied. It makes it easy to work with the class system and adds a bunch of features we wish !JavaScript had. It is written in `.ojs` files which can sit in `#{RAILS_ROOT}/app/javascript/`. They are included on the page using OJS::Loader - more on this later.
 
+=== Classes ===
 
+{{{
+//define class Foo
+class Foo {
+  //initialization code
+  @init(name) {
+    // @name just translates into this.name - kinda like the ruby instance var convention,
+    // however, in OJS can also be used to call instance methods - e.g. @get_name()
+    @name = name
+    // @@set_last_instance translates to this.klass.set_last_instance - again, like ruby @@vars.
+    // the .klass object is inheritable and generally behaves a lot like the ruby meta-class.
+    // Note that for external access you must use Foo.klass.set_last_instance(), not simply Foo.set_last_instance()
+    @@set_last_instance(this)
+  }
+  //an instance method
+  @get_name() {
+    return @name
+  }
+  //a class method
+  @@set_last_instance(inst) {
+    @@last_instance = inst
+  }
+}
+//define class Bar, inherits from Foo
+class Bar : Foo {
+    @get_name() {
+        // super calling - calls get_name() from Foo
+        return "bar: " + super()
+        // calling super (without brackets) will pass on the same arguments as this method was given (using the arguments local)
+    }
+}
+}}}
 
+Classes can be instantiated using either `Foo.klass.create()` or `Foo.klass.createWith(prop_hash)` (creates an instance with the properties in `prop_hash` set) or `Foo.klass.findOrCreateBy(property_name, property_value)` (self explanatory). 
 
+The later two forms call the `init()` function without any arguments. 
 
+=== Default Arguments ===
 
+{{{
+    @foo(a, b, c=23) {
+        // works just like ruby - if c is not passed, defaults to 23
+    }
+}}}
+
+=== Splat Arg Array ===
+
+{{{
+    @foo(a,b, *other) {
+        //again - just like ruby - all arguments past second collected into an array and assigned to local 'other'
+    }
+}}}
+
+=== Ruby-Style Strings (with Interpolation!) === 
+
+{{{
+    #"Hello, #{name}!"
+}}}
+becomes:
+{{{
+    "Hello, "+(name)+"!"
+}}}
+
+You can also use characters other then quotes to delimit strings - e.g.:
+{{{
+    #! <a onclick="alert('yay')"> !
+}}}
+
+(), [], {} or <> are paired - (so it's `#<a string>` not `#<a string<` )
+
+=== Simpler native for-loop ===
+
+{{{
+    #foreach el: someArray {
+        alert(el)
+    }
+}}}
+becomes:
+{{{
+    var __things =  someArray ;for(var i = __things.length - 1; i >= 0; i--) {var el = __things[i];
+      alert(el)
+    }
+}}}
+
+=== Unless statement ===
+
+{{{
+    unless(condition) {
+        //...
+    }
+}}}
+becomes: 
+{{{
+    if(!(condition)) {
+        //...
+    }
+}}}
