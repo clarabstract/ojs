@@ -1,0 +1,139 @@
+#firelog {
+  font-family: Helvetica, Arial, sans-serif; 
+  margin:0 10px;
+}
+
+#firelog.fl_visible {
+  border:1px solid #333;
+  background-color: #FFF9B9;
+  margin:0 10px
+}
+
+#fl_toggle_log {
+  border:1px solid #333;
+  background-color: #FFF9B9;
+  float:right;
+  padding:4px 5px 3px;
+  margin:0;
+}
+
+#firelog.fl_visible #fl_toggle_log {
+ border:none;
+ background:none;
+ padding:0;
+ margin:5px 6px 4px;
+}
+#firelog a {
+  text-decoration:none;
+}
+#firelog a:hover {
+  text-decoration:underline;
+}
+#firelog a:visited {}
+
+#firelog h1 {
+  padding:5px;margin:0;
+  font-size:0.8em;
+  font-weight:bold;
+  background-color: #FFF9B9;
+}
+
+.fl_log_row {
+  margin:0; padding:2px 5px;
+  border-top:1px solid #999;
+  font-family: monospace;
+}
+.l_crumb_arrow {
+  color:#999;
+}
+.fl_command_link {
+  font-size:0.7em;
+  float:right;
+  margin:5px 6px 4px;
+  text-decoration:underline;
+}
+#fl_expand_inspector.fl_command_link {
+  float: none;
+}
+#fl_crumbs {
+  font-size:0.8em;
+  padding:2px 5px;
+}
+#fl_inspector {
+  background-color: #DAFFD6;
+  border-top:1px solid #999;
+}
+#fl_inspector h2 {
+  padding:5px; margin:0;
+  font-size:0.9em;
+  border-bottom:1px solid #ccc;
+  border-top:1px solid #ccc;
+}
+#firelog .fl_propname {
+  color:#418AAB;
+  border-bottom:1px dotted #ccc;
+}
+#firelog .crumb.active {
+  font-weight:bold;
+  border-bottom:2px solid #999;
+}
+#firelog td {
+  font-size:0.9em;
+  padding:2px 5px;
+}
+
+#fl_func_source {
+  background-color:#FAEAF6;
+  margin:5px;
+  padding:0 10px;
+  overflow: auto;
+  width:auto;
+  border:1px solid #ccc;
+}
+
+/* Logger formatting */
+
+.l_mrkr {
+  font-weight:bold;
+  color:#000;
+}
+
+.l_arr {
+  background-color:#FFFE4F;
+}
+
+.l_arrlnk {
+  color:#000;
+  font-weight:bold;
+}
+
+.l_num {
+  color:#f00;
+}
+.l_str {
+  color:#009810;
+}
+.l_strquo {
+  font-weight: bold;
+}
+.l_bool {
+  color:#000776;
+}
+.l_null {
+  color:#fff;
+  font-family: Helvetica, Arial, sans-serif;
+  background-color:#999;
+  padding:1px 3px;
+  font-size:0.75em;
+}
+.l_func {
+  color:#994386;
+}
+
+.l_obj {
+  background-color:#fff;
+}
+.l_objlnk {
+  color:#000;
+  font-weight:bold;
+}

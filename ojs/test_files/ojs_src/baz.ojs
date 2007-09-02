@@ -1,0 +1,4 @@
+#require 'common.ojs'
+class Baz : Foundation {
+  
+}
