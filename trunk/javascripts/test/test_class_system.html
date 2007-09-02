@@ -1,0 +1,324 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" debug="true">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+
+  <title>Test</title>
+  
+  <script src="../lib/prototype.js" type="text/javascript" charset="utf-8"></script>
+  <script src="../lib/firelog.js" type="text/javascript" charset="utf-8"></script>
+  <script src="../lib/test_support.js" type="text/javascript" charset="utf-8"></script>
+  <script src="../src/ojs_utils.js" type="text/javascript" charset="utf-8"></script>
+  <script src="../src/class.js" type="text/javascript" charset="utf-8"></script>
+  <link rel="stylesheet" href="../lib/firelog.css" type="text/css" media="screen" title="no title" charset="utf-8">
+  <link rel="stylesheet" href="../lib/test_support.css" type="text/css" media="screen" title="no title" charset="utf-8">
+  
+</head>
+
+<body>
+<div id="firelog"></div>
+
+
+<script type="text/javascript" charset="utf-8">
+
+function Person (){}
+define_class(Person, Base, {
+  set_name: function(name) {
+    this.name = name
+  },
+  inheritable: function(str) {
+    return str + ">>> "+this.name + " - "
+  },
+  inherited_by_managers: function(str) {
+    return str + this.name + "@@@"
+  },
+  modify_manager_cvar: function(str) {
+    this.klass.manager_cvar += str
+  },
+  multi_inherit: function() {
+    return "p"
+  }
+}, {
+  find: function() {
+    return "all people" + (this.managers_fired ? " except managers" : "")
+  }
+})
+
+function Client() {} 
+define_class(Client, Person)
+
+
+function Employee() {}
+define_class(Employee, Person, {
+  set_salary: function(salary) {
+    this.salary = salary
+  },
+  inheritable: function(str) {
+    return arguments.callee.super_method.apply(this,arguments) + " has salary " + this.salary + "..." + str
+  },
+  multi_inherit: function() {
+    return "e" + arguments.callee.super_method.apply(this,arguments);
+  }
+})
+
+function Manager() {}
+define_class(Manager, Employee, {
+  calls_set_name: function(new_name) {
+    this.set_name(new_name)
+  },
+  inherited_by_managers: function(str) {
+    return str + arguments.callee.super_method.apply(this,["ZXY"]) + "!!!"
+  },
+  multi_inherit: function() {
+    return "m" + arguments.callee.super_method.apply(this,arguments);
+  }
+},{
+  fire_all_managers: function() {
+    this.managers_fired = true
+    return "off they go!"
+  },
+  defined: function() {
+    this.was_defined = "yep"
+  },
+  inherited: function(subclass) {
+
+    this.got_subclass = subclass.klass.name()
+  }
+})
+
+function SuperManager() {}
+define_class(SuperManager, Manager, {
+  multi_inherit: function() {
+    return "s" + arguments.callee.super_method.apply(this,arguments);
+  }
+})
+
+var p = Person.klass.create();
+var e = Employee.klass.create();
+var m = Manager.klass.create();
+
+test("Person has set_name", function(){
+  return typeof(p.set_name)
+})
+test("Person does not have set_salary", function(){
+  return typeof(p.set_salary)
+})
+test("Employee has set_salary", function(){
+  return typeof(e.set_salary)
+})
+test("Employee inherited set_name", function(){
+  return typeof(e.set_name)
+})
+assert_result_for('Person has set_name', 'function');
+assert_result_for('Person does not have set_salary', 'undefined');
+assert_result_for('Employee has set_salary', 'function');
+assert_result_for('Employee inherited set_name', 'function');
+
+test("Person has properly named _real_constructor function", function(){
+  return !!p._real_constructor.toString().match(/^[\(\s)]*function Person()/)
+})
+test("Employee has properly named _real_constructor function", function(){
+  return !!e._real_constructor.toString().match(/^[\(\s)]*function Employee()/)
+})
+assert_result_for("Person has properly named _real_constructor function", true);
+assert_result_for("Employee has properly named _real_constructor function", true)
+
+test("Person's _real_constructor points to the right function", function(){
+  return p._real_constructor === Person
+})
+
+test("Employee's _real_constructor points to the right function", function(){
+  return e._real_constructor === Employee
+})
+
+test("Manager's _real_constructor points to the right function", function(){
+  return m._real_constructor === Manager
+})
+
+assert_result_for("Person's _real_constructor points to the right function", true);
+assert_result_for("Employee's _real_constructor points to the right function", true);
+assert_result_for("Manager's _real_constructor points to the right function", true);
+
+test("Person can actually set name", function(){
+  p.set_name("Bob")
+  return p.name
+})
+assert_result_for('Person can actually set name', 'Bob');
+test("Employee can actually set name", function(){
+  e.set_name("Joe")
+  return e.name
+})
+assert_result_for('Employee can actually set name', 'Joe');
+
+test("Employee can set salary", function(){
+  e.set_salary(42)
+  return e.salary
+})
+
+test("Person doesn't have a salary", function(){
+  return p.salary
+})
+
+test("A new person doesn't have a salary", function(){
+  return (new Person()).salary
+})
+test("A new person doesn't have a name", function(){
+  return (new Person()).name
+})
+assert_result_for("Employee can set salary", 42);
+assert_result_for("Person doesn't have a salary", null);
+assert_result_for("A new person doesn't have a salary", null);
+assert_result_for("A new person doesn't have a name", null);
+
+test("Person's super class is Base", function(){
+  return Person.super_class === Base
+})
+assert_result_for("Person's super class is Base", true);
+
+test("Employee's super class is Person", function(){
+  return Employee.super_class === Person
+})
+assert_result_for("Employee's super class is Person", true);
+
+test("Inheritable functions with super calls", function(){
+  e.set_name("Bobby")
+  e.set_salary(80000)
+  return e.inheritable("!123!")
+})
+assert_result_for("Inheritable functions with super calls", '!123!>>> Bobby -  has salary 80000...!123!');
+
+test("Manager can call set_name internally", function(){
+  m.calls_set_name("Fred")
+  return m.name
+})
+assert_result_for("Manager can call set_name internally", 'Fred');
+
+test("Manager can make a super call to Person methods, skipping Employee", function(){
+  return m.inherited_by_managers("ABC")
+})
+assert_result_for("Manager can make a super call to Person methods, skipping Employee", 'ABCZXYFred@@@!!!');
+
+test("Person's klass object is not Employee's klass object.", function(){
+  return Person.klass === Employee.klass
+})
+
+test("Employee's klass object is not Manager's klass object.", function(){
+  return Employee.klass === Manager.klass
+})
+
+test("Person's klass object is not Manager's klass object.", function(){
+  return Person.klass === Manager.klass
+})
+
+assert_result_for("Person's klass object is not Employee's klass object.", false);
+assert_result_for("Employee's klass object is not Manager's klass object.", false);
+assert_result_for("Person's klass object is not Manager's klass object.", false);
+
+
+test("Person has class method find()", function(){
+  return typeof(Person.klass.find)
+})
+test("Person instance can access klass object", function(){
+  return p.klass === Person.klass
+})
+test("Employee inherited class method find()", function(){
+  return typeof(Employee.klass.find)
+})
+
+test("Manager inherited class method find()", function(){
+  return typeof(Manager.klass.find)
+})
+
+test("Manager has class method fire_all_managers()", function(){
+  return typeof(Manager.klass.fire_all_managers)
+})
+
+test("Employee does not have class method fire_all_managers", function(){
+  return typeof(Employee.klass.fire_all_managers)
+})
+
+test("Person does not have class method fire_all_managers", function(){
+  return typeof(Person.klass.fire_all_managers)
+})
+
+assert_result_for("Person has class method find()", 'function');
+assert_result_for("Person instance can access klass object", true);
+assert_result_for("Employee inherited class method find()", 'function');
+assert_result_for("Manager inherited class method find()", 'function');
+assert_result_for("Manager has class method fire_all_managers()", 'function');
+assert_result_for("Employee does not have class method fire_all_managers", 'undefined');
+assert_result_for("Person does not have class method fire_all_managers", 'undefined');
+
+test("Manager class function can affect Person class function", function(){
+  Manager.klass.fire_all_managers()
+  return "Person: "+Person.klass.find()+", Manager: "+Manager.klass.find()
+})
+assert_result_for("Manager class function can affect Person class function", 'Person: all people, Manager: all people except managers');
+
+test("Manager instance can affect Manager klass vars", function() {
+  Manager.klass.manager_cvar = "QQQ"
+  m.modify_manager_cvar("TTT")
+  return Manager.klass.manager_cvar
+})
+
+test("Person instance can't affect Manager klass vars", function() {
+  Manager.klass.manager_cvar = "QQQ"
+  p.modify_manager_cvar("TTT")
+  return Manager.klass.manager_cvar
+})
+
+assert_result_for("Manager instance can affect Manager klass vars", 'QQQTTT');
+assert_result_for("Person instance can't affect Manager klass vars", 'QQQ');
+
+
+
+var foo = Person.klass.i(23)
+var fuu = Person.klass.i(23)
+var bar = Person.klass.i(99)
+
+test("findOrCreate returns the same instance for same id", function(){
+  return foo === fuu
+})
+test("findOrCreate returns a different instance for different id", function(){
+  return foo === bar
+})
+test("findOrCreate returns an object with a set property", function(){
+  return [foo.id, fuu.id, bar.id]
+})
+assert_result_for("findOrCreate returns the same instance for same id", true);
+assert_result_for("findOrCreate returns a different instance for different id", false);
+assert_result_for("findOrCreate returns an object with a set property", [23, 23, 99]);
+
+
+test("multiple super calls", function(){
+  return SuperManager.klass.create().multi_inherit();
+})
+assert_result_for("multiple super calls", 'smep');
+
+test("defined callback", function(){
+  return Manager.klass.was_defined
+})
+test("inherited callback", function(){
+  return Manager.klass.got_subclass
+})
+assert_result_for("defined callback", "yep");
+assert_result_for("inherited callback", "SuperManager");
+
+test("class name", function(){
+  return Person.klass.name()
+})
+assert_result_for("class name", "Person");
+
+test(".i() call keeps _instances separate", function() {
+  p = Person.klass.i('T')
+  c  = Client.klass.i('T')
+  m  = Manager.klass.i('T')
+  return [p.klass.name(), c.klass.name(), m.klass.name(), p.klass._instances == m.klass._instances]
+})
+assert_result_for(".i() call keeps _instances separate", ["Person", "Client", "Manager", false]);
+</script>
+
+</body>
+</html>

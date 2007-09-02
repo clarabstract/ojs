@@ -1,0 +1,155 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" debug="true">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+
+  <title>Test</title>
+  
+  <script src="../lib/prototype.js" type="text/javascript" charset="utf-8"></script>
+  <script src="../lib/firelog.js" type="text/javascript" charset="utf-8"></script>
+  <script src="../lib/test_support.js" type="text/javascript" charset="utf-8"></script>
+  <script src="../src/ojs_utils.js" type="text/javascript" charset="utf-8"></script>
+  <script src="../src/class.js" type="text/javascript" charset="utf-8"></script>
+  <script src="../src/event_dispatcher.js" type="text/javascript" charset="utf-8"></script>
+  <link rel="stylesheet" href="../lib/firelog.css" type="text/css" media="screen" title="no title" charset="utf-8">
+  <link rel="stylesheet" href="../lib/test_support.css" type="text/css" media="screen" title="no title" charset="utf-8">
+  
+</head>
+
+<body>
+<div id="firelog"></div>
+  <div id="test_content" style="display:none;">
+    <div id="post_23">
+      <h5 id="post_23_title">Event Dispatcher Is Awsome!</h5>
+
+      <form action="blah" method="get" accept-charset="utf-8" id="testform" onsubmit="log('submited'); return false;">
+        
+      <div id="post_23_4messingup2day">Tricky<br>
+              <input id="post_23_tags" onfocus="log('Tags - real focus')" onblur="log('Tags - real blur')"/><br>
+              <input id="post_23_keywords" onfocus="log('Keywords - real focus')" onblur="log('Keywords - real blur')"/>
+        </div>
+        <p><input id="post_23_submit" type="submit" value="Continue &rarr;" onfocus="log('submit - real focus')" onblur="log('submit - real blur')"></p>
+      </form>
+
+      <div id="post_23_body">
+        Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+      </div>
+      <h6> Comments: </h6>
+      <div id="post_23_comments">
+        <div id="comment_204">
+            <p id="comment_204_body">
+              <strong>Lorem ipsum dolor sit amet, consectetur</strong> adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+              <br>
+              by <em id="comment_204_author">Johnny Johnson</em>
+            </p>
+        </div>
+        <div id="comment_205">
+            <p id="comment_205_body">
+              <strong>Lorem ipsum dolor sit amet, consectetur</strong> adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+              <br>
+              by <em id="comment_205_author">Bobby Bobson</em>
+            </p>
+        </div>
+        <div id="comment_206">
+            <p id="comment_206_body">
+              <strong>Lorem ipsum dolor sit amet, consectetur</strong> adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+              <br>
+              by <em id="comment_206_author">Qbertr Qbertington</em>
+            </p>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+
+
+<script type="text/javascript" charset="utf-8">
+  function Post(){}
+  define_class(Post, Base, {
+    on_click: function(el, ev) {
+      log("Post on click",el, ev)
+    },
+    on_title_click: function(el, ev) {
+      log("Post title clicked", el, ev)
+    },
+    on_tags_focus: function(el, ev) {
+      log("Tags has focus event", ev.type, el, ev)
+    },
+    on_tags_blur: function(el, ev) {
+      log("Tags has blur event", ev.type, el, ev)
+    },
+    on_keywords_focus: function(el, ev) {
+      log("Keywords has focus event", ev.type, el, ev)
+    },
+    on_keywords_blur: function(el, ev) {
+      log("Keywords has blur event", ev.type, el, ev)
+    },
+    on_submit_focus: function(el, ev) {
+      log("submit has focus event", ev.type, el, ev)
+    },
+    on_submit_blur: function(el, ev) {
+      log("submit has blur event", ev.type, el, ev)
+    }
+  })
+  
+  function Comment(){}
+  define_class(Comment, Base, {
+    on_author_click: function(el, ev) {
+      log("Comment author click",el, ev)
+    },
+    on_any_event: function(el, ev) {
+      this.done_already = this.done_already ||  {}
+      if (!this.done_already[ev.type]) {
+        log("Comment fallback handler", ev.type, el, ev)
+        this.done_already[ev.type] = true
+      };
+        
+    }
+  })
+  // Mocking
+
+  stub(Event,"element", function(ev) {
+    return ev.fake_element;
+  })
+
+  mock_to_verify(Dispatcher,"dispatch")
+  
+  function test_dispatch(el_id, ev_type) {
+    Dispatcher.handle({fake_element:{id:el_id}, type:ev_type})
+    return verify(Dispatcher, "dispatch").slice(0,3)
+  }
+  
+  
+  test("Match parent with instance ID", function(){
+    return test_dispatch("comment_23","click")
+  })
+  test("Match attribute with instance ID", function(){
+    return test_dispatch("comment_23_title", "click")
+  })
+  test("Match singleton parent", function(){
+    return test_dispatch("post_N")
+  })
+  test("Match singleton's attribute", function(){
+    return  test_dispatch("post_N_title", "click")
+  })
+  test("Match unsaved parent", function(){
+    return test_dispatch("post_N23", "click")
+  })
+  test("Match unsaved attribute", function(){
+    return test_dispatch("post_N23_title", "click")
+  })
+  
+  assert_result_for("Match parent with instance ID", ["comment", null, "23"]);
+  assert_result_for("Match attribute with instance ID", ["comment", "title", "23"]);
+  assert_result_for("Match singleton parent", ["post", null, "N"]);
+  assert_result_for("Match singleton's attribute", ["post", "title", "N"]);
+  assert_result_for("Match unsaved parent", ["post", null, "N23"]);
+  assert_result_for("Match unsaved attribute", ["post", "title", "N23"]);
+  
+</script>
+
+
+</body>
+</html>

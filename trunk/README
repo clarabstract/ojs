@@ -1,0 +1,51 @@
+= OJS: More Object-Oriented Javascript for Rails (and others)
+
+OJS is a library that allows you to deal with individual 'components' (like a login form, a div representing a comment, a grid etc) on a page as objects, with classes, inheritance and all that OOP goodness. 
+
+Ostensibly this simply means separating the "behavior" layer of your page from the structural HTML itself, much like CSS separates the visual presentation layer. The idea is in line with other approaches to "unobtrusive javascript" (google it).
+
+OJS does this in a way more familiar to object-oriented (desktop) GUI development.  It allows you to define controller classes which receive events from a particular group of elements on the page, perform high level operations with the group as a whole, and store relevant state information. This is a much more maintainable and modular approach then inline javascript and even the "event selector" approach (aka Behavior.js) which, although a big step up, still doesn't make it easy to deal with "components" on the page as a cohesive unit.
+
+OJS makes extensive use of classes and inheritance to provide common functionality out of the box. For instance, if all your form controllers inherit from the built-in FormController class, validation, loading indicators and error notification methods will become available and you can deal with them in a neatly consistent fashion.  You could also inherit from AjaxFromController instead ( a subclass of FormController) which simply performs an AJAX request instead of refreshing the page (and provides additional callbacks for handling responses). 
+
+To make all of this practical, OJS also provides a number of tools (available in a rails plugin):
+
+1) The OJS Translator allows you to write your JavaScript code using actual class declarations ("class Foo : Bar { ... }") with super() calls and class method inheritance. It also provides some much needed syntax sugar, such as ruby style string interpolation ( #"Hello #{user.name}" ), unless statements (negated if), #foreach (simple macro for efficient native loops, when prototype's .each() is needless overhead). 
+
+2)  JavaScript event dispatching which is a very efficient way of handling events for a large number of elements on a page without extensive processing on page load ("event selector" approaches can noticeably slow down page load when applicable dealing with large pages). The event dispatcher uses event bubbling and an html id naming convention to handle any number of events with just one page-wide event listener. 
+
+3) The OJS Loader, which dynamically creates packages from many JS files (OJS tends to encourage many small JS, specialized files instead of a few monolithic ones), limiting JS-file requests to the server to 3 per page, while balancing needless re-downloading and caching. 
+
+4) A set of Rails view helpers that make it easy to write HTML using the ID conventions. (They also provide functionality similar to Rails' built-in form helpers, such as pre-filling field values in an edit form)
+
+5) (Coming Soon™) HTML templates that can be shared between ruby and javascript (i.e. you can create html using just javascript from the same template ruby uses on the server side without an ajax call). They work within rhtml and the above mentioned view helpers, but only support a very minimal amount of 'smarts'.
+
+== Tutorial
+
+TODO by Ruy - and I mean it! Bug him about it if he hasn't done it yet!!
+
+
+== Class Structure
+
+=== LanguageExtender
+
+LanguageExtender is a "simple" pattern based parser and translator. It is somewhat inspired by TextMate and works by creating scopes between begin/end patterns.
+
+The main advantage over a proper RDP is that it doesn't have to be aware of the complete language grammar - you can just deal with a few choice interesting parts and forget about the rest. LanguageExtender::LanguageDefinition and LanguageExtender::Translation are meant to be subclassed and can be used to define a grammar and translate it.
+
+It is used to translate .ojs files into actual js (and also extracts dependencies on the fly). It could also be separated from "OJS" into a gem if need be at a later date if the need arises.
+
+
+=== OJS::Loader
+
+The OJS::Loader module provides a collection of classes and modules that collaborate to allow on-demand loading of external "resources" (currently javascript and css files). Dependency order is maintained and files are merged into efficient "Packages" (by OJS::Loader::Packer) that limit the number of per-page requests to the server while still allowing for client-side caching of common code fragments. 
+
+Custom behavior can be specified for certain file types (by file extension). For instance, <tt>.ojs</tt> files are parsed/translated and can require further dependencies.
+
+=== OJS::HtmlRepresentation
+
+Representations are basically a more structured approach to "views". They are kind of like a cross between partials and form builders. 
+
+Superficially, they are really just tag helpers that can pre-fill html IDs, names and values to reasonable defaults (that work with event_dispatcher.js)
+
+In addition, they also hook up events that don't propagate (and are thus inaccessible to event_dispatcher.js), auto-require relevant ojs files, and can make their content available as pre-compiled javascript string-template-functions. 
