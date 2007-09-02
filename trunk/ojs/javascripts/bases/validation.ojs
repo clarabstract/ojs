@@ -1,0 +1,70 @@
+/* 
+  The following mostly just provides syntax sugar for defining and using validations.
+  
+  Usage with FormController:
+  
+  @validate_<some field> {
+    @validate(field_el, Validations.NotEmpty() ) 
+    // ...or perhaps,
+    @validate(field_el, Validations.NotEmpty().with_message("Don't DO that!") )
+    // some validations take parameters:
+    @validate(field_el, Validations.Pattern(/abc/).with_message("#FIELD must contain 'abc'!") ) 
+  }
+  
+  Defining:
+  
+  Validations.define({
+    name:     'MyValidation',     // becomes available as Validations.MyValidation()
+    message:  "Eek!",             // can be over-ridden using with_message() by clients
+                                  // '#FIELD' substitution will work
+
+    rule:     function(value, other, stuff) { 
+                // value parameter is always present - it's the value you're testing for validity
+                // any parameters passed to Validations.MyValidation will be added as parameters here
+                //    e.g. Validations.MyValidation(1,2) => other = 1; stuff = 2;
+                // Note that it is possible (and encouraged) to make use of existing validation rules
+                // see Validations.NotEmpty for an example (it re-uses the Pattern validation's rule)
+              }
+  })
+  
+*/
+
+var Validations = {}
+Validations.define = function( opts ) {
+  Validations[opts.name] = function(){
+    var __rule_func = opts.rule, __rule_args = $A(arguments);
+    return {
+      rule: function(value) {
+        return __rule_func.apply(this, [value].concat(__rule_args));
+      },
+      message: opts.message,
+      with_message: function (new_message) {
+        this.message = new_message;
+        return this;
+      }
+    }
+  }
+}
+
+Validations.define({
+  name:     'Pattern',
+  message:  "#FIELD does not appear to be valid.",
+  rule:     function(value, pattern) { 
+              return pattern.test(value) 
+            }
+})
+
+Validations.define({
+  name:     'NotEmpty',
+  message:  "#FIELD can't be empty.",
+  rule:     Validations.Pattern(/[^\s]+/).rule
+})
+
+Validations.define({
+  name:     'Email',
+  message:  "#FIELD is not a valid email address.",
+  rule:     Validations.Pattern(/^[-\w._%+]+@[\w.-]+\.[a-zA-Z]{2,6}$/).rule
+})
+
+
+

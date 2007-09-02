@@ -1,0 +1,72 @@
+/**
+  A notification MUST:
+    - have a message
+    - be associated with at least 1 object
+*/
+class Notification {
+  @init (message, insertion_target, associated_objects) {
+    if(arguments.length == 0 ) return;
+    @associated_objects = associated_objects
+    @message = message
+    @insertion_target = insertion_target
+    @main_owner = associated_objects[0]
+    @@inst_counter = @@inst_counter || 0
+    @inst_id = (@@inst_counter++)
+    @insert_html()
+    #foreach associated_object: @associated_objects {
+      associated_object[@@collection_name()] = associated_object[@@collection_name()] || []
+      associated_object[@@collection_name()].push(this)
+    }
+  }
+  @insert_html() {
+    @insertion_target.insert(@html())
+  }
+  @@collection_name() {
+    return @base_name() + "s"
+  }
+  @@base_name() {
+    return @name().underscore()
+  }
+  @html_class() {
+    return @associated_objects.inject(@@base_name(), function(acc, obj){
+      return acc + #" #{@@base_name()}_for_#{@@html_class_for_assoc(obj)}"
+    }.bind(this))
+  }
+  @html_id() {
+    return #"#{@@base_name()}_#{@inst_id}"
+  }
+  @html() {
+    return #!<div id="#{@html_id()}" class="#{@html_class()}">#{@message}</div>!
+  }
+  @@html_class_for_assoc(obj) {
+    if(obj.klass && obj.klass.base_name) return obj.klass.base_name()
+    if(obj.tagName) return obj.id
+  }
+  @remove_html() {
+    $(@html_id()).remove();
+  }
+  @clear() {
+    @remove_html()
+    #foreach associated_object: @associated_objects {
+       associated_object[@@collection_name()] = associated_object[@@collection_name()].without(this)
+     }
+  }
+}
+
+class ErrorNotification : Notification {
+  @init(message, insertion_target, associated_objects) {
+    if(arguments.length == 0 ) return;
+    super
+    #foreach associated_object: @associated_objects {
+      if( associated_object.tagName ) associated_object.addClassName("invalid")
+    }
+    
+  }
+  
+  @clear() {
+    #foreach associated_object: @associated_objects {
+      if( associated_object.tagName ) associated_object.removeClassName("invalid")
+    }
+    super
+  }
+}

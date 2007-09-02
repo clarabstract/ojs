@@ -1,0 +1,121 @@
+/**
+  This class provides functionality common to any controller you write.
+*/
+class ElementController {
+  // Grab the element for an attribute e.g. @$('title') => $('comment_23_title')
+  //   Fallbacks: Just return the argument if it's already an HTMLElement, and also try a direct id (maybe $('title') exists?) 
+  // Without any arguments, the parent element eg.  @$() => $('comment_23')
+  @$(attribute_name) {
+    if(attribute_name) {
+      if(attribute_name.tagName) return attribute_name;
+      return $(#"#{@@base_name()}_#{@id}_#{attribute_name}") || $(attribute_name);
+    }
+    return $(#"#{@@base_name()}_#{@id}");
+  }
+  
+  
+  @on_command(element, event, attribute) {
+    Event.stop(event)
+    callback(this,#'on_#{attribute}')
+  }
+  
+  @collection(name = 'collection') {
+    return @$(name).immediateDescendants().invoke('controller')
+  }
+  
+  @parent() {
+    return $(@$().parentNode).controller()
+  }
+  
+  @on_action(element, event, attribute) {
+    Event.stop(event)
+    // Only procede if the before callback returns true or doesn't exist
+    var before_callback = this[#"before_#{attribute}"]
+    if(!before_callback || before_callback(element, event)) {
+      @on_loading_action(element, event, attribute)
+      var ajax_options = @configure_action_ajax(element, attribute)
+      var url = ajax_options.url
+      ajax_options.url = null
+      new Ajax.Request(url, ajax_options)
+    }
+    
+  }
+  
+  @loading_indicator(attrib = "") {
+    return @$(#'#{attrib}_loading_indicator') || @$('loading_indicator') || {show:Prototype.emptyFunction, hide:Prototype.emptyFunction}
+  }
+  
+  @on_loading_action(element, event, attribute) {
+    callback(this, #"on_loading_#{attribute}", [element, event, attribute] )
+    element.addClassName('loading')
+    @loading_indicator(attribute).show()
+  }
+  
+  @on_stop_loading_action(attribute) {
+    callback(this, #"on_stop_loading_#{attribute}", [@$(attribute)] )    
+    @loading_indicator(attribute).hide()
+  }
+  
+  @configure_action_ajax(element, attribute) {
+    var options =  {
+      url: element.getAttribute('href'),
+      method:element.getAttribute("remote_method")
+    }
+    for(member_name in this) {
+      var callback_pattern = new RegExp(#"^on_#{attribute}_([-_\\w]+)$")
+      if( match = member_name.match(callback_pattern) ) {
+        ajax_event_name = "on"+match[1].capitalize()
+        this[member_name] = this[member_name].bind(this)
+        options[ajax_event_name] =  this[member_name]
+      }
+    }
+    options.onComplete = function() {
+      @on_stop_loading_action(attribute)
+      callback(this, #"on_#{attribute}_complete", arguments)
+    }.bind(this)
+    options.onFailure = function(response) {
+      @on_stop_loading_action(attribute)
+      @show_ajax_errors(response)
+      callback(this, #"on_#{attribute}_failure", arguments)
+    }.bind(this)
+    options = callback(this, #"configure_ajax_for_#{attribute}", [options]) || options;
+    return options;
+  }
+  @show_ajax_errors(response) {
+    var errors = eval('('+response.responseText+')')
+    #foreach error: errors {
+      @add_error(error.message, @field_for_error(error.on) )
+    }
+  }
+  // Add an error message using the Notifier
+  @add_error( message, for_field = null, error_target = @get_error_target() ) {
+    @has_errors = true
+    associated_objs = [this]
+    if(for_field) associated_objs.push(for_field);
+    ErrorNotification.klass.create(message, error_target, associated_objs)
+  }
+  @clear_errors() {
+    @has_errors = false
+    if(@error_notifications) @error_notifications.invoke("clear")
+  }
+  // Either a user-set @error_target or the @default_error_target
+  @get_error_target() {
+    return (@error_target || @default_error_target())
+  }
+  
+  // Either the bottom of an attribute element 'error_target' or the top of the parent element.
+  @default_error_target() {
+    if( et = @$('error_target') ) return et.bottom();
+    return @$().top()
+  }
+  @@base_name() {
+    return @_cached_base_name || (@_cached_base_name = @name().underscore() )
+  }
+  // Given an error field name (usually from an ActiveRecord column name), return what controller field to associate it with.
+  // By default it will simply return @$(field_name), or null for 'base', however, you can over-ride it if you want 
+  // to associate certain ActiveRecord columns with a form field of a different name.
+  @field_for_error(field_name) {
+    if(field_name == "base") return null
+    return @$(field_name)
+  }
+}

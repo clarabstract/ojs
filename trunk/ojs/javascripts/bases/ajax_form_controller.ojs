@@ -1,0 +1,42 @@
+/**
+  Having your form inherit from this instead of FormController will cause the form to be submitted using AJAX.
+  Prototype's callbacks (from Ajax.Options) are automatically assigned to on_ajax_<callback name>
+  e.g. onComplete => @on_ajax_complete
+  
+*/ 
+class AjaxFormController : FormController {
+  @on_submit(el, ev) {
+    Event.stop(ev)
+    super
+    unless(@has_errors) {
+      var ajax_options = @configure_ajax()
+      var url = ajax_options.url
+      ajax_options.url = null
+      new Ajax.Request(url, ajax_options)
+    }
+  }
+  // Overrride to change options
+  @configure_ajax() {
+    var options =  {
+      url: @$().getAttribute('action'),
+      parameters:@$().serialize(true),
+      method:@$().getAttribute("method")
+    }
+    for(member_name in this) {
+      if( match = member_name.match(/^on_ajax_([-_\w]+)$/) ) {
+        ajax_event_name = "on"+match[1].capitalize()
+        this[member_name] = this[member_name].bind(this)
+        options[ajax_event_name] =  this[member_name]
+      }
+    }
+    return options;
+  }
+  
+  @on_ajax_complete(resp) {
+    @on_stop_loading()
+  }
+  @on_ajax_failure(response) {
+    @show_ajax_errors(response)
+  }
+
+}
