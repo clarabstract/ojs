@@ -1,0 +1,82 @@
+#require 'validation.ojs'
+#require 'notification.ojs'
+/**
+  All forms should inherit from this class.
+  Form controller provides, out of the box:
+   - Loading indicators
+   - Validation
+   - Error notification
+*/
+
+class FormController : ElementController {
+
+  // Triggers on_loading and on_validate
+  @on_submit(element, event) {
+    @clear_errors()
+    @on_validate()
+    if( @has_errors ) {
+      Event.stop(event)
+    } else {
+      @on_loading(element, event)
+    }
+  }
+  
+  // Shows the loading indicator, disables the submit button and sets it to show the loading text.
+  @on_loading(element, event) {
+    @$().addClassName('loading')
+    if(@$('submit')) {
+      @normal_submit_value = @$('submit').value
+      @$('submit').disable()
+      @$('submit').value = @get_loading_text()
+    }
+    @loading_indicator().show()
+  }
+  
+  // Hides loading indicator, enables the submit button and sets it to show it's normal submit value
+  @on_stop_loading(element, event) {
+    @$().removeClassName('loading')
+    if(@$('submit')) {
+      @$('submit').value = @normal_submit_value
+      @$('submit').enable()
+    }
+    @loading_indicator().hide()
+  }
+  
+  // Applies all validation functions like @validate_username 
+  @on_validate() {
+    for( m in this) {
+      if( match = m.match(/^validate_(.*)/)) {
+        field_to_validate = @$(match[1])
+        this[m](field_to_validate, field_to_validate.getValue())
+      }
+    }
+  }
+  
+  // Applies the validator's rule to the value of field, and adds an error with the validator's message if the rule fails.
+  //
+  // A validator must always respond to:
+  //    .rule -> with a function that takes a value and returns true if the rule passes, and false otherwise
+  //    .message -> A failure message. If the string contains '#FIELD' it will be replaced with the field's label.
+  // The Validations{} collection provides serveral pre-defined validations and you are encouraged to re-use validators
+  // from it and extend it with your own.
+  @validate(field, validator, value = field.getValue() ) {
+    unless( validator.rule(value) ) {
+      @add_error(validator.message.gsub('#FIELD', @lbl(field)).capitalize(), field)
+    }
+  }
+
+
+  // Get label for a field, either from content of corresponding label element, or just humanized id name.
+  @lbl(el_or_id) {
+    var lbl_el = el_or_id.id ? $(#"#{el_or_id.id}_lbl") : @$(#"#{el_or_id}_lbl")
+    if(lbl_el) return lbl_el.innerHTML.strip_nonwords(); 
+    return (el_or_id.id || el_or_id).to_ojs_parts().attribute_name.gsub("_", ' ')
+  }
+  
+  // Text to use for form's submit button while loading.
+  @get_loading_text() {
+    return (@loading_text || @$('submit').getAttribute("_loading_text"))
+  }
+  
+
+}
