@@ -55,6 +55,7 @@ OJS::configure({
     ".ojs" => "#{RAILS_ROOT}/app/javascript",
     ".js" => "#{RAILS_ROOT}/public/javascripts/lib",
     ".css" => "#{RAILS_ROOT}/public/stylesheets",
+    ".sass" => "#{RAILS_ROOT}/public/stylesheets",
     ".rhtml" => "#{RAILS_ROOT}/app/views"
   },
   :pack_output => {
@@ -70,6 +71,7 @@ OJS::configure({
 OJS::Loader::RequirementManager.default_resource_class = OJS::Loader::DefaultResource
 OJS::Loader::RequirementManager.register_resource_class(".ojs", OJS::Loader::OjsResource)
 OJS::Loader::RequirementManager.register_resource_class(".rhtml", OJS::Loader::TemplateResource)
+OJS::Loader::RequirementManager.register_resource_class(".sass", OJS::Loader::SassResource)
 
 class ActionView::Base
   include OJS::Loader::RequireHelpers
