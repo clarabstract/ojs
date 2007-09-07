@@ -8,15 +8,15 @@ namespace :ojs do
     FileUtils.mkpath [RAILS_ROOT + '/public/javascripts/packs', RAILS_ROOT + '/public/stylesheets/packs']
     FileUtils.mkpath [RAILS_ROOT + '/tmp/ojs', RAILS_ROOT + '/app/javascript']
     FileUtils.cp Dir[PLUGIN_ROOT + '/javascripts/src/*.js'], RAILS_ROOT + '/public/javascripts/lib'
-    FileUtils.cp Dir[PLUGIN_ROOT + '/javascripts/bases/*.js'], RAILS_ROOT + '/app/javascript'
+    FileUtils.cp Dir[PLUGIN_ROOT + '/javascripts/bases/*.ojs'], RAILS_ROOT + '/app/javascript'
     FileUtils.cp Dir[PLUGIN_ROOT + '/javascripts/lib/firelog.*'], RAILS_ROOT + '/public/javascripts/logger'
   end
 
   desc 'Removes the javascripts for the plugin.'
   task :remove do
-    FileUtils.rm Dir[PLUGIN_ROOT + '/javascripts/src/*.js'].collect { |f| RAILS_ROOT + "/public/javascripts/lib" + File.basename(f)  }
-    FileUtils.rm Dir[PLUGIN_ROOT + '/javascripts/bases/*.js'].collect { |f| RAILS_ROOT + "/app/javascript" + File.basename(f)  }
-    FileUtils.rm Dir[PLUGIN_ROOT + '/javascripts/lib/firelog.*'].collect { |f| RAILS_ROOT + "/public/javascripts/logger" + File.basename(f)  }
+    FileUtils.rm Dir[PLUGIN_ROOT + '/javascripts/src/*.js'].collect { |f| RAILS_ROOT + "/public/javascripts/lib/" + File.basename(f)  }
+    FileUtils.rm Dir[PLUGIN_ROOT + '/javascripts/bases/*.ojs'].collect { |f| RAILS_ROOT + "/app/javascript/" + File.basename(f)  }
+    FileUtils.rm Dir[PLUGIN_ROOT + '/javascripts/lib/firelog.*'].collect { |f| RAILS_ROOT + "/public/javascripts/logger/" + File.basename(f)  }
   end
   
   desc 'Removes all temporariy files and caches.'

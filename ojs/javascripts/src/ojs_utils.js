@@ -16,11 +16,27 @@ Object.extend(String.prototype, {
 
 Element.addMethods({
   controller: function(element) {
-    var el_parts = element.id.to_ojs_parts()
-    var controller_klass = window[el_parts.controller_class.camelize_underscores()]
+    var el_parts;
+    if(!element.id || !(el_parts = element.id.to_ojs_parts()) ) return null;
+    var controller_klass = window[el_parts.controller_class.camelize_underscores()];
     if(controller_klass)  return controller_klass.klass.i(el_parts.instance_id);
+    return null;
+  },
+  handle: function(element, event) {
+    var controller;
+    if(controller = element.controller()) controller.handle(element, event) 
+    return true;
   }
 })
+
+function _dispatch_event(ev) {
+  if(ev.element) ev.element().handle(ev)
+}
+var dispatchable_events = ["click","dblclick","mousedown","mouseup", "mouseup", "keydown","keyup","keypress"] 
+for (var i = dispatchable_events.length - 1; i >= 0; i--){
+  Event.observe(document, dispatchable_events[i], _dispatch_event);
+};
+
 
 // Creates an anonymous function that calls +func+ and then returns the negated output.
 function negate(func) {

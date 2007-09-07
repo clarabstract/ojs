@@ -213,7 +213,8 @@ module OJS
       def event_hooks(pass_value, *events)
         handlers = {}
         events.each do |event|
-          handlers["on#{event}"] = "callback($(this).controller(), '#{event_callback_name(event)}', [this, event#{", $F(this)" if pass_value}]); return true;"
+          # handlers["on#{event}"] = "callback($(this).controller(), '#{event_callback_name(event)}', [this, event#{", $F(this)" if pass_value}]); return true;"
+          handlers["on#{event}"] = "return $(this).handle(event)"
         end
         handlers
       end
@@ -238,15 +239,18 @@ module OJS
       
       def field_tag(name, content, options, block)
         options[:name] ||= html_name
-        options.merge!(event_hooks(true, :change))
+        options.merge!(event_hooks(true, :change, :blur, :focus))
         tag(name, content, options, block)
       end
       
       def input_tag(type, args, block)
         content, options = splat(args, block)
         options[:type] = type
-        options[:value] ||= (content || self.value)
-        options[:_class] = type
+        options[:value] ||= (content || self.value || options[:empty])
+        options[:_class] = type.to_s
+        unless content || value
+          options[:_class] << " empty"
+        end
         field_tag(:input, nil, options, block)
       end
       def wrap_tag(html)
