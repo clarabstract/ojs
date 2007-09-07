@@ -22,6 +22,44 @@
 
 
 <script type="text/javascript" charset="utf-8">
+Klass = {
+  klass_name: function() {
+    log(this)
+    return "klass name"
+  }
+}
+Class._orginal_create = Class.create
+Class.create = function() {
+  new_class = Class._orginal_create.apply(Class, arguments);
+  Object.extend(new_class, Klass)
+  return new_class
+}
+var Animal = Class.create({
+  initialize: function(name) {
+    this.name = name;
+  },
+  eat: function() {
+    return this.say("Yum!");
+  },
+  say: function(message) {
+    return this.name + ": " + message;
+  }
+});
+
+// subclass that augments a method
+var Cat = Class.create(Animal, {
+  eat: function($super, food) {
+    if (food instanceof Mouse) return $super();
+    else return this.say("Yuk! I only eat mice.");
+  }
+});
+function Mouse(){
+}
+cat = new Cat("fluffy")
+log(cat.eat("pig"))
+log(cat.eat(new Mouse))
+log(Cat.klass_name())
+
 
 function Person (){}
 define_class(Person, Base, {

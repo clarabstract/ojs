@@ -12,11 +12,64 @@ class ElementController {
     }
     return $(#"#{@@base_name()}_#{@id}");
   }
+  // Calls the right event handler function for a given element-event pair.
+  // There is a 'chain' of event handlers that can get executed (from least specific to most specific)
+  //    on_any_<event name>(el, ev, attrib_name)
+  //    on_<TAG NAME>_<event name>(el, ev, attrib_name)
+  //    on_<VIRTUAL TAG NAME>_<event name>(el, ev, attrib_name)
+  //    on_<event name>(el, ev) -OR- on_<attribute name>_<event name>(el, ev, attrib_name)
+  //                                 (if the element is an attribute)
+  // 
+  //  The <VIRTUAL TAG NAME> is assigned for certain elements:
+  //      <A remote_method="">    => ACTION
+  //      <A command="">          => COMMAND
+  //      <INPUT type="text">     => TEXT
+  //      <INPUT type="password"> => PASSWORD
+  //            ... and so forth for all INPUT types
+  //
+  // Note: This functionality used to be present in event_dispatcher.js, now gone.
+  @handle(element, event) {
+    var ev_name = event.type
+    var tag_name = element.tagName
+    var virtual_tag 
+    if(tag_name == "A") {
+      if(element.getAttribute('remote_method')) virtual_tag = "ACTION" 
+      if(element.getAttribute('command')) virtual_tag = "COMMAND" 
+    }
+    if(tag_name == "INPUT") {
+      virtual_tag = element.getAttribute('type').toUpperCase()
+    }
+    var parts = element.id.to_ojs_parts()
+    var attribute_name
+    if(parts.attribute_name.length > 0) attribute_name = parts.attribute_name
+    args = [element, event, attribute_name]
+    callback(this,#"on_any_#{ev_name}",args)
+    callback(this,#"on_#{tag_name}_#{ev_name}",args)
+    if(virtual_tag) callback(this,#"on_#{virtual_tag}_#{ev_name}",args)
+    if(attribute_name) {
+      callback(this,#"on_#{attribute_name}_#{ev_name}",args)
+    } else {
+      args.pop()
+      callback(this,#"on_#{ev_name}",args)
+    }
+  }
+  @on_TEXT_focus(element, event) {
+    var empty_val
+    if(empty_val = element.getAttribute("empty") && element.hasClassName("empty")) {
+      element.removeClassName("empty")
+      element.value = ""
+    }
+  }
+  @on_TEXT_blur(element, event) {
+    var empty_val
+    if((empty_val = element.getAttribute("empty")) && !element.value.match(/[^\s]+/)) {
+      element.addClassName("empty")
+      element.value = empty_val
+    }
+  }
   
-  
-  @on_command(element, event, attribute) {
-    Event.stop(event)
-    callback(this,#'on_#{attribute}')
+  @on_COMMAND_click(element, event, attribute) {
+    if(event.isLeftClick()) Event.stop(event)
   }
   
   @collection(name = 'collection') {
@@ -27,7 +80,7 @@ class ElementController {
     return $(@$().parentNode).controller()
   }
   
-  @on_action(element, event, attribute) {
+  @on_ACTION_click(element, event, attribute) {
     Event.stop(event)
     // Only procede if the before callback returns true or doesn't exist
     var before_callback = this[#"before_#{attribute}"]

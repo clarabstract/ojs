@@ -64,7 +64,7 @@ OJS::configure({
   },
   :pub_root => "#{RAILS_ROOT}/public",
   :req_cache_store => $__ojs_cache_store,
-  :always_require => %w(prototype.js effects.js ojs_utils.js class.js event_dispatcher.js),
+  :always_require => %w(prototype.js effects.js ojs_utils.js class.js),
   :never_require => %w(base.ojs)
 })
 
