@@ -23,7 +23,12 @@ module OJS
         options.merge!(event_hooks(false, :submit))
         tag :form, content, options, block
       end
-      
+      def label(*args, &block)
+        content, options = splat(args, block)
+        options[:for] ||=  html_id
+        options[:_id] ||= "lbl"
+        tag :label, content, options, block
+      end
       def text_area(*args, &block)
         content, options = splat(args, block)
         field_tag :textarea, content, options, block
@@ -136,11 +141,21 @@ module OJS
       
       def submit(*args, &block)
         content, options = splat(args, block)
-        options[:_loading_text] = options.delete(:loading_text)
-        options[:type] = options[:_id] = "submit"
+        options[:_loading_text] = options.delete(:loading_text) if options[:loading_text]
+        options[:type] ||= "submit"
+        options[:_id] = "submit"
         options[:value] = content || "Submit"
         field_tag(:input, nil, options, block)
-       end
+      end
+      
+      def image_submit(*args, &block)
+        content, options = splat(args, block)
+        options[:type] ||= "image"
+        options[:_id] = "submit"
+        options[:alt] ||= "Submit"
+        options[:src] = content
+        field_tag(:input, nil, options, block)
+      end
       
       def link(*args, &block)
         content, options = splat(args, block)
