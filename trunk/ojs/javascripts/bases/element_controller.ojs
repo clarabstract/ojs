@@ -39,9 +39,7 @@ class ElementController {
     if(tag_name == "INPUT") {
       virtual_tag = element.getAttribute('type').toUpperCase()
     }
-    var parts = element.id.to_ojs_parts()
-    var attribute_name
-    if(parts.attribute_name.length > 0) attribute_name = parts.attribute_name
+    var attribute_name = element.id.to_ojs_parts().attribute_name
     args = [element, event, attribute_name]
     callback(this,#"on_any_#{ev_name}",args)
     callback(this,#"on_#{tag_name}_#{ev_name}",args)

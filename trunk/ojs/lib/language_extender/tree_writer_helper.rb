@@ -7,7 +7,7 @@ module LanguageExtender
       $stdout << "\n#{str.collect{|line|(prefix+line)[0,220]}.join}" if explain_level >= level
     end
     def algn(str, with=".")
-      str.ljust(40, with) + with*(50 - @@prefix.size)
+      str.ljust(40, with) + with*(50 - @@prefix.size) rescue "TREE OUT OF RANGE"
     end
     def explain_level; @@explain_level || 0; end
     def explain_level=(val); @@explain_level=val; end
