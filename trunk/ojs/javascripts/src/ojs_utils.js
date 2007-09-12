@@ -26,6 +26,10 @@ Element.addMethods({
     var controller;
     if(controller = element.controller()) controller.handle(element, event) 
     return true;
+  },
+  visibility: function(element, value) {
+    element.setStyle({visibility: (value ? "visible" : "hidden")});
+    return element;
   }
 })
 
