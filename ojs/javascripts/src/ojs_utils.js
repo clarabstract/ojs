@@ -30,7 +30,39 @@ Element.addMethods({
   visibility: function(element, value) {
     element.setStyle({visibility: (value ? "visible" : "hidden")});
     return element;
-  }
+  },
+
+  restoreStyles: function(element) {
+    return element.setStyle(element._originalStyles)
+  },
+  // Either an array or an object hash.
+  saveStyles: function(element, styles) {
+    var save_only_styles = [];
+    var set_styles = { };
+    if(Object.isArray(styles)) {
+      save_only_styles = styles;
+    } else {
+      if(Object.isString(styles)) {
+        save_only_styles = $A(arguments).slice(1);
+      }else{
+        set_styles = styles;
+        save_only_styles = $A(arguments).slice(2);
+      }
+    } 
+    element._originalStyles = {}
+
+    for (var i = save_only_styles.length - 1; i >= 0; i--){
+      var s = save_only_styles[i];
+      element._originalStyles[s] = element.getStyle(s)
+    };
+
+    for(p in set_styles) {
+      element._originalStyles[p] = element.getStyle(p)
+    }
+    element.setStyle(set_styles)
+    
+    return element;
+  },
 })
 
 function _dispatch_event(ev) {
