@@ -62,7 +62,7 @@ Element.addMethods({
     element.setStyle(set_styles)
     
     return element;
-  },
+  }
 })
 
 function _dispatch_event(ev) {
