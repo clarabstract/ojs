@@ -11,6 +11,7 @@ module OJS
           new_objects = options[:with]
         else
           new_objects = [options[:with]]
+          render_options[:object] = options[:with]
           json[:element] = "#{options[:representation]}_#{options[:with].id}"
         end
         (options[:other_elements] || {}).each_pair do |key, element|

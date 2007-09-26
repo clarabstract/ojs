@@ -72,7 +72,12 @@ module OJS
         "<#{self.class.name} (#{@rep_name}): #{@object_class} -> #{@data_object.inspect} >"
       end
       def value_for(attrib_name)
-        @data_object[attrib_name.to_sym] rescue nil
+        attrib_name = attrib_name.to_sym
+        if @data_object.respond_to?(attrib_name)
+          @data_object.send(attrib_name)
+        else
+          @data_object[attrib_name] rescue nil
+        end
       end
       private
       def singular_url_method

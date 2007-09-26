@@ -33,17 +33,17 @@ class ElementController {
     var tag_name = element.tagName
     var virtual_tag 
     if(tag_name == "A") {
-      if(element.getAttribute('remote_method')) virtual_tag = "ACTION" 
-      if(element.getAttribute('command')) virtual_tag = "COMMAND" 
+      if(element.readAttribute('remote_method')) virtual_tag = "ACTION" 
+      if(element.readAttribute('command')) virtual_tag = "COMMAND" 
     }
     if(tag_name == "INPUT") {
-      virtual_tag = element.getAttribute('type').toUpperCase()
+      virtual_tag = element.readAttribute('type').toUpperCase()
     }
     var attribute_name = element.id.to_ojs_parts().attribute_name
     args = [element, event, attribute_name]
     callback(this,#"on_any_#{ev_name}",args)
     callback(this,#"on_#{tag_name}_#{ev_name}",args)
-    if(virtual_tag) callback(this,#"on_#{virtual_tag}_#{ev_name}",args)
+    callback(this,#"on_#{virtual_tag}_#{ev_name}",args)
     if(attribute_name) {
       callback(this,#"on_#{attribute_name}_#{ev_name}",args)
     } else {
@@ -53,14 +53,14 @@ class ElementController {
   }
   @on_TEXT_focus(element, event) {
     var empty_val
-    if(empty_val = element.getAttribute("empty") && element.hasClassName("empty")) {
+    if((empty_val = element.readAttribute("empty")) && element.hasClassName("empty")) {
       element.removeClassName("empty")
       element.value = ""
     }
   }
   @on_TEXT_blur(element, event) {
     var empty_val
-    if((empty_val = element.getAttribute("empty")) && !element.value.match(/[^\s]+/)) {
+    if((empty_val = element.readAttribute("empty")) && !element.value.match(/[^\s]+/)) {
       element.addClassName("empty")
       element.value = empty_val
     }
@@ -109,8 +109,8 @@ class ElementController {
   
   @configure_action_ajax(element, attribute) {
     var options =  {
-      url: element.getAttribute('href'),
-      method:element.getAttribute("remote_method")
+      url: element.readAttribute('href'),
+      method:element.readAttribute("remote_method")
     }
     for(member_name in this) {
       var callback_pattern = new RegExp(#"^on_#{attribute}_([-_\\w]+)$")
