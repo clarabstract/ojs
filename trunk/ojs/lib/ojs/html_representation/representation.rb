@@ -18,6 +18,25 @@ module OJS
         ["#{@rep_name}.ojs", "#{@object_class}.ojs" ]
       end
       attr_reader :html_name_prefix
+      # Normally the HTML names for child elements are simply the attribute names.
+      # 
+      # e.g. 
+      #
+      #   rep(comment).form do |c|
+      #     c[:body].text_area
+      #
+      # renders:
+      #
+      #   <textarea name="body" ... >
+      #
+      # But sometimes you need to submit a series of elements in the same <form>. 
+      #
+      #   rep(comment).name_group(:comments).tr do |c
+      #     c[:body].text_area
+      # 
+      # renders:
+      #
+      #   <textarea name="comment[23]body" ... >
       def name_group(name)
         @html_name_prefix = name
         self
