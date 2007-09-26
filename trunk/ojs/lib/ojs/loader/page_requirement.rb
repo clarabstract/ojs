@@ -29,12 +29,12 @@ module OJS
       def resolve_path(possible_files)
         path = nil
         possible_files.each do |file|
-          path = Pathname.new(file)
-          unless path.exist?
-            path = Pathname.new(OJS::options[:base_paths][path.extname].to_s) + path
+          file = Pathname.new(file)
+          unless file.exist?
+            path = Pathname.new(OJS::options[:base_paths][file.extname].to_s) + file unless !path.nil? && path.exist?
           end
         end
-        raise "Couldn't require #{path}" unless path.exist?
+        raise "Couldn't require #{possible_files.join(", or ")}" unless path.exist?
         path
       end
 

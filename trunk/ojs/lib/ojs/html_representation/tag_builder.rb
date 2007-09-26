@@ -25,6 +25,7 @@ module OJS
       end
       def label(*args, &block)
         content, options = splat(args, block)
+        content ||= name.to_s.humanize
         options[:for] ||=  html_id
         options[:_id] ||= "lbl"
         tag :label, content, options, block
@@ -35,10 +36,10 @@ module OJS
       end
       
       HTML_TAGS = %w(
-        a abbbr acronym address area b base bdo big blockquote body br button caption cite code col colgroup dd del dfn div dl
-        dt em fieldset frame frameset h1 h2 h3 h4 h5 h6 head hr i iframe img input ins kbd legend li link map meta
+        a abbbr acronym address area b base bdo big blockquote br button caption cite code col colgroup dd del dfn div dl
+        dt em fieldset frame frameset h1 h2 h3 h4 h5 h6 hr i iframe img input ins kbd legend li link map meta
         noframes noscript object ol optgroup option p param pre q samp script select small span strike strong style sub sup 
-        table tbody td textarea tfoot th thead title tr tt ul var
+        table tbody td textarea tfoot th thead tr tt ul var
       )
       
       HTML_TAGS.each do |tag|
