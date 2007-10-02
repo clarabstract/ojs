@@ -31,10 +31,44 @@ Element.addMethods({
     element.setStyle({visibility: (value ? "visible" : "hidden")});
     return element;
   },
-
+  // Allows disabling/enabling of A elements
+  disable: function(element) {
+    // Can natively be disabled?
+    if(element.disabled != null) return Form.Element.disable(element)
+    if(element.tagName == "A") { 
+      element.onclick = function(ev) {
+        Event.stop(ev);
+      }
+      element.addClassName("disabled")
+      return element;
+    }
+  },
+  enable: function(element) {
+    if(element.disabled != null) return Form.Element.enable(element)
+    if(element.tagName == "A") { 
+      element.onclick = null
+      element.removeClassName("disabled")
+      return element;
+    }
+  },
   restoreStyles: function(element) {
     return element.setStyle(element._originalStyles)
   },
+  getStyle: Element.Methods.getStyle.wrap(
+    function(proceed, element, style_name) {
+      var style_val = proceed(element, style_name);
+      if(style_val) return style_val;
+      // Return proper default values
+      switch(style_name) {
+        case "visibility":
+          return "visible";
+        case "position":
+          return "static";
+        default:
+          return "auto";
+      }
+    }
+  ),
   // Either an array or an object hash.
   saveStyles: function(element, styles) {
     var save_only_styles = [];
@@ -64,8 +98,9 @@ Element.addMethods({
     return element;
   },
   getCaretPosition: function (ctrl) {
-    var CaretPos = 0;
-    // IE Support
+    if(!ctrl) return null;
+    var CaretPos ;
+    // IE
     if (document.selection) {
       ctrl.focus();
       var Sel = document.selection.createRange();
@@ -73,15 +108,19 @@ Element.addMethods({
       Sel.moveStart ('character', -ctrl.value.length);
 
       CaretPos = Sel.text.length;
+    }else{
+      // Firefox
+      try {
+        if (ctrl.selectionStart || ctrl.selectionStart == '0') CaretPos = ctrl.selectionStart;
+      } catch(e) {
+        return null
+      }
     }
-    // Firefox support
-    else if (ctrl.selectionStart || ctrl.selectionStart == '0')
-      CaretPos = ctrl.selectionStart;
-
     return (CaretPos);
 
   },
   setCaretPosition: function(ctrl, pos) {
+    if(!ctrl || !pos) return null;
     if(ctrl.setSelectionRange)  {
       ctrl.focus();
       ctrl.setSelectionRange(pos,pos);

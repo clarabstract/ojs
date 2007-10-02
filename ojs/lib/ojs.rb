@@ -73,6 +73,7 @@ OJS::Loader::RequirementManager.register_resource_class(".ojs", OJS::Loader::Ojs
 OJS::Loader::RequirementManager.register_resource_class(".rhtml", OJS::Loader::TemplateResource)
 OJS::Loader::RequirementManager.register_resource_class(".sass", OJS::Loader::SassResource)
 
+
 class ActionView::Base
   include OJS::Loader::RequireHelpers
   include OJS::HtmlRepresentation::ViewHelpers
@@ -86,6 +87,15 @@ class ActionController::Base
       OJS::HtmlRepresentation::Representation::reset_all
     end
     append_after_filter :fix_opera_xhr
+    prepend_around_filter :ajax_error_reporting 
+    def ajax_error_reporting 
+      yield 
+    rescue Exception => e 
+      respond_to do |request| 
+        request.js { render :text=>e.json_messages, :status=>e.http_status } 
+        request.html { raise e } 
+      end 
+    end
     def fix_opera_xhr
       if request.env['HTTP_X_LIMITED_STATUS_CODE_SUPPORT']
         puts "STATUS #{response.headers['Status']}"

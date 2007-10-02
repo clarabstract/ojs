@@ -73,7 +73,7 @@ module OJS
             @view.send("#{prefix}#{singular_url_method}".to_sym, @data_object)
           else
             #TODO: Handle empty template objects.
-            @view.send("#{prefix}#{plural_url_method}".to_sym)
+            @view.send("#{prefix}#{plural_url_method}".to_sym) rescue @view.send("#{prefix}#{singular_url_method}".to_sym, @data_object)
           end
         end
       end
