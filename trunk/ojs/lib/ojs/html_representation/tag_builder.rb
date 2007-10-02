@@ -173,9 +173,9 @@ module OJS
       # Using links as "buttons" (i.e. don't go nowhere)
       def command(*args, &block)
         content, options = splat(args, block)
-        options[:href] = "##{name}"
+        options[:url] = "##{name}"
         options[:command] = "command"
-        tag(:a, content, options, block)
+        link(content, options, &block)
       end
       def email_link(*args, &block)
         content, options, email = splat(args, block)
@@ -223,7 +223,7 @@ module OJS
       SELF_CLOSING_TAGS = %w(area base br col frame hr img input link meta param)
       
       def tag(name, content, options, block)
-        content ||= self.value unless SELF_CLOSING_TAGS.include?(name.to_s.downcase)
+        content ||= (self.value || self.name.to_s.humanize) unless SELF_CLOSING_TAGS.include?(name.to_s.downcase)
         content = wrap_content(content)
         options[:id] = [html_id, options[:_id]].compact.join('_')
 
