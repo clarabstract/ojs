@@ -97,7 +97,7 @@ module OJS
         [%{\n    arguments.callee.super_method && arguments.callee.super_method.apply(this,arguments);}]
       end
       def super_call_with_params(scope, parts)
-        [%{\n    arguments.callee.super_method && arguments.callee.super_method.apply(this,[#{super_call_params}]);}]
+        [%{\n    arguments.callee.super_method && arguments.callee.super_method.apply(this,[#{scope[:super_call_params]}]);}]
       end
       def instance_member_accessor(scope, parts)
         [%{this.#{scope[:method_name]}}]

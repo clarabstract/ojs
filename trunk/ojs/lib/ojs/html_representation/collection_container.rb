@@ -2,7 +2,7 @@ module OJS
   module HtmlRepresentation
     class CollectionContainer < RepresentationAttribute
       def initialize(name, representation, view)
-        @partial = name || representation.name.singularize
+        @partial = name || representation.name.to_s.singularize
         @name = name || "collection"
         @representation = representation
         @view = view

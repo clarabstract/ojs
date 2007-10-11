@@ -31,6 +31,9 @@ module OJS
       def value
         @representation.value_for(@name)
       end
+      def collection(partial_name = nil)
+        CollectionContainer.new(partial_name, self, @view)
+      end
       def url(url_req)
         @representation.url(url_req)
       end

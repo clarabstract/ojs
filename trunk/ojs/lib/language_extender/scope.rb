@@ -31,6 +31,7 @@ module LanguageExtender
       content = ""
       nl "|--:#{id_name}" 
       while next_scope = self.next_part do
+        raise "Unterminated scope #{id_name} around:\n #{search_space}" unless next_scope.end_part_offset
         advance_by(next_scope.end_part_offset)
         @children << next_scope
       end

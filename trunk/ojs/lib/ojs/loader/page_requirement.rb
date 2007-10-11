@@ -5,7 +5,6 @@ module OJS
         @requirement_manager = requirement_manager
         @page_name = page_name
         @resources = {}
-        demand_file(OJS::options[:always_require].last)
       end
       def resources
         @resources.values
@@ -17,7 +16,7 @@ module OJS
         unless @resources[path]
           new_resource = @resources[path] = @requirement_manager.resource_for(path)
           new_resource.prerequisite_files.each do |prerequisite_file|
-            new_resource.included_prerequisite_resources << demand_file(prerequisite_file) unless OJS::options[:never_require].include?(prerequisite_file)
+            new_resource.included_prerequisite_resources << demand_file(prerequisite_file)
           end
         end
         @resources[path]
