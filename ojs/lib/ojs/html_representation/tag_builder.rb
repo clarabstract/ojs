@@ -252,7 +252,7 @@ module OJS
         options[:type] = type
         options[:value] ||= (content || self.value || options[:empty])
         options[:_class] = type.to_s
-        unless content || value
+        if options[:empty] && (!content || !value)
           options[:_class] << " empty"
         end
         field_tag(:input, nil, options, block)
