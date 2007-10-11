@@ -63,9 +63,7 @@ OJS::configure({
     "css" => "#{RAILS_ROOT}/public/stylesheets/packs",
   },
   :pub_root => "#{RAILS_ROOT}/public",
-  :req_cache_store => $__ojs_cache_store,
-  :always_require => %w(prototype.js effects.js ojs_utils.js class.js),
-  :never_require => %w(base.ojs)
+  :req_cache_store => $__ojs_cache_store
 })
 
 OJS::Loader::RequirementManager.default_resource_class = OJS::Loader::DefaultResource

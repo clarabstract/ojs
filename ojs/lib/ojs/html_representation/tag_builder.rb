@@ -56,6 +56,9 @@ module OJS
       def hidden_field(*args, &block)
         input_tag :hidden, args, block
       end
+      def file_field(*args, &block)
+        input_tag :file, args, block
+      end
 
       # :checked_value and :unchecked value, implemented with hidden field (much like check_box helper)
       def check_box(*args, &block)

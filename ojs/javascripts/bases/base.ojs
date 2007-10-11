@@ -1,0 +1,5 @@
+// Loads default support packages.
+#require 'prototype.js'
+#require 'effects.js'
+#require 'ojs_utils.js'
+#require 'class.js'

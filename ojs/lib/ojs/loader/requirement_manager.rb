@@ -43,15 +43,11 @@ module OJS
           @resource_classes[ext] = handler_class
         end
         def make_new_resource_for(path)
-          new_resource = if special_resource = @resource_classes[path.extname]
-              special_resource.new(path)
-            else
-              default_resource_class.new(path)
-            end
-          if (ar_idx = OJS::options[:always_require].index(path.basename.to_s)) && ar_idx > 0
-            new_resource.add_prereq OJS::options[:always_require][ar_idx - 1]
+          if special_resource = @resource_classes[path.extname]
+            special_resource.new(path)
+          else
+            default_resource_class.new(path)
           end
-          new_resource
         end
       end
     end
