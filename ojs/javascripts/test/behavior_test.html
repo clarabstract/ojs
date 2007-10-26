@@ -1,0 +1,252 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>JavaScript unit test file</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <script src="../lib/prototype.js" type="text/javascript"></script>
+  <script src="../lib/unittest.js" type="text/javascript"></script>
+  <script src="../src/should_receive.js" type="text/javascript"></script>
+  
+  <script src="../src/behavior.js" type="text/javascript"></script>
+  <link rel="stylesheet" href="../lib/unittest.css" type="text/css" />
+</head>
+<body>
+<div id="header">
+  <div id="happy">A happy DIV!</div>
+  <div id="ok"> I'm merely just ok.</div>
+</div>
+<div id="testlog"></div>
+<script type="text/javascript">
+// <![CDATA[
+  // Test data
+  TestController = {
+    doSomething: function(){return true },
+    doSomethingElse: function(){return true },
+    doOther: function(){return true }
+  }
+  
+  MyBehavior = {
+    properFunction: function(){ return this; },
+    "::test:foo": function(){},
+    "::test:bar": function(){}
+  }
+  AnotherBehavior = {
+    "::test:foo": function(){},
+    "::test:baz": function(){}
+  }
+
+  // Utilities
+  function insertSadDiv() {
+    $('happy').insert(new Element('div', {id:"sad"}).update(':('))
+  }
+  Test.context("The Behavior library", {
+    setup: function() {
+      $T(TestController)
+      $T(MyBehavior)
+      $T(AnotherBehavior)
+      Event.doesNotBubble["test:no-bubble"] = true
+    },
+    teardown: function() {
+      Event.stopObservingAllSelectors()
+      if($('sad')) $('sad').remove() 
+    },
+    "should extend events with a name attribute": function() {
+      TestController.shouldReceive('doSomething').verifying(function(ev){
+        ev.name.shouldEqual('test:click')
+        $T(ev.findElement).shouldNotBeNull()
+      })
+      $('happy').observe("test:click", TestController.doSomething)
+      $('happy').fire("test:click")
+    },
+    "Event.observeElementsDirectly(selector, eventName, handler) should attach events to selectors (without delegation), allowing for re-application": function() {
+      TestController.shouldReceive('doSomething').verifying(function(ev){
+        ev.element().id.shouldEqual('happy')
+      })
+      Event.observeElementsDirectly("#happy", 'test:click', TestController.doSomething)
+      $('happy').fire("test:click")
+    },
+    "Event.updateObserversFor(element) should  allow for re-application of direct selector events to a modified element": function() {
+      TestController.shouldReceive('doSomething').verifying(function(ev){
+        ev.element().id.shouldEqual('sad')
+      })
+      Event.observeElementsDirectly("#sad", 'test:click', TestController.doSomething)
+      insertSadDiv()
+      Event.updateObserversFor('happy')
+      $('sad').fire("test:click")
+    },
+    "Event.observeElementsWithDelegation(selector, eventName, handler) should allow for attaching events to selectors using delegation": function() {
+      TestController.shouldReceive('doSomething').verifying(function(ev){
+        ev.element().id.shouldEqual('happy')
+      })
+      TestController.shouldReceive('doSomethingElse').verifying(function(ev){
+        ev.element().id.shouldEqual('sad')
+      })
+      insertSadDiv()
+      Event.observeElementsWithDelegation('#happy',"test:click", TestController.doSomething)
+      Event.observeElementsWithDelegation('#sad',"test:click", TestController.doSomethingElse)
+      
+      $('happy').fire("test:click")
+      $('sad').fire("test:click")
+    },
+    "Event.observeElements(selector, eventName, handler) should use delegation by default": function() {
+      $T(Event).shouldReceive('observeElementsWithDelegation').withArgs("#happy", "test:bubble", TestController.doSomething)
+      Event.observeElements("#happy", "test:bubble", TestController.doSomething)
+    },
+    "Event.observeElements(selector, eventName, handler) should use direct observing by default for events that are known not to bubble": function() {
+      $T(Event).shouldReceive('observeElementsDirectly').withArgs("#happy", "test:no-bubble", TestController.doSomething)
+      Event.observeElements("#happy", "test:no-bubble", TestController.doSomething)
+    },
+    "Event.observeElements(selector, eventName, handler) should be able to force direct observing": function() {
+      $T(Event).shouldReceive('observeElementsDirectly').withArgs("#happy", "test:bubble", TestController.doSomething)
+      Event.observeElements("#happy", "test:bubble-direct", TestController.doSomething)
+    },
+    "Event.observeElements(selector, eventName, handler) should be able to force delegate observing": function() {
+      $T(Event).shouldReceive('observeElementsWithDelegation').withArgs("#happy", "test:no-bubble", TestController.doSomething)
+      Event.observeElements("#happy", "test:no-bubble-delegated", TestController.doSomething)
+    },
+    "Event.stopObservingSelector(selector) should stop both direct and delegated events for that selector": function() {
+      TestController.shouldNotReceive('doSomething')
+      TestController.shouldNotReceive('doSomethingElse')
+      TestController.shouldNotReceive('doOther')
+      Event.observeElementsWithDelegation("#happy", "test:bubble", TestController.doSomething)
+      Event.observeElementsDirectly("#sad", "test:no-bubble", TestController.doSomethingElse)
+      Event.observeElementsDirectly("#ok", "test:no-bubble", TestController.doOther)
+      insertSadDiv()
+      
+      Event.stopObservingSelector("#happy")
+      Event.stopObservingSelector("#sad")
+      Event.stopObservingSelector("#ok")
+      
+      Event.updateObserversFor('happy')
+      
+      $('happy').fire("test:bubble")
+      $('sad').fire("test:no-bubble")
+      $('ok').fire("test:no-bubble")
+    },
+    "Event.stopObservingSelector(selector, eventName) should only stop a particular event": function() {
+      TestController.shouldReceive('doSomething').verifying(function(e){ e.name.shouldEqual('test:happy-go') })
+      TestController.shouldReceive('doSomethingElse').verifying(function(e){ e.name.shouldEqual('test:sad-go') })
+      TestController.shouldReceive('doOther').verifying(function(e){ e.name.shouldEqual('test:ok-go') })
+
+      Event.observeElementsWithDelegation("#happy", "test:happy", TestController.doSomething)
+      Event.observeElementsWithDelegation("#happy", "test:happy-go", TestController.doSomething)
+      Event.observeElementsDirectly("#sad", "test:sad", TestController.doSomethingElse)
+      Event.observeElementsDirectly("#sad", "test:sad-go", TestController.doSomethingElse)
+      Event.observeElementsDirectly("#ok", "test:ok", TestController.doOther)
+      Event.observeElementsDirectly("#ok", "test:ok-go", TestController.doOther)
+
+      insertSadDiv()
+      
+      Event.stopObservingSelector("#happy", "test:happy")
+      Event.stopObservingSelector("#sad", "test:sad")
+      Event.stopObservingSelector("#ok", "test:ok")
+      
+      Event.updateObserversFor('happy')
+      
+      $('happy').fire("test:happy-go")
+      $('happy').fire("test:happy")
+      $('sad').fire("test:sad-go")
+      $('sad').fire("test:sad")
+      $('ok').fire("test:ok-go")
+      $('ok').fire("test:ok")
+    },
+    "Event.stopObservingSelector(selector, eventName, handler) should only stop a particular handler": function() {
+      TestController.shouldReceive('doSomething').exactly(3).times().verifyingEachTime({
+        1: function(e){ e.name.shouldEqual('test:click'); e.element().id.shouldEqual('happy') },
+        2: function(e){ e.name.shouldEqual('test:click'); e.element().id.shouldEqual('sad') },
+        3: function(e){ e.name.shouldEqual('test:click'); e.element().id.shouldEqual('ok') }
+      })
+      TestController.shouldNotReceive('doSomethingElse')
+
+      Event.observeElementsWithDelegation("#happy", "test:click", TestController.doSomething)
+      Event.observeElementsWithDelegation("#happy", "test:click", TestController.doSomethingElse)
+      Event.observeElementsDirectly("#sad", "test:click", TestController.doSomething)
+      Event.observeElementsDirectly("#sad", "test:click", TestController.doSomethingElse)
+      Event.observeElementsDirectly("#ok", "test:click", TestController.doSomething)
+      Event.observeElementsDirectly("#ok", "test:click", TestController.doSomethingElse)
+
+      insertSadDiv()
+      
+      Event.stopObservingSelector("#happy", "test:click", TestController.doSomethingElse)
+      Event.stopObservingSelector("#sad", "test:click", TestController.doSomethingElse)
+      Event.stopObservingSelector("#ok", "test:click", TestController.doSomethingElse)
+      
+      Event.updateObserversFor('happy')
+      
+      $('happy').fire("test:click")
+      $('sad').fire("test:click")
+      $('ok').fire("test:click")
+    },
+    "Event.stopObservingAllSelectors() should stop ALL selector-driven observers everywhere": function() {
+      TestController.shouldNotReceive('doSomething')
+
+      Event.observeElementsWithDelegation("#happy", "test:beep", TestController.doSomething)
+      Event.observeElementsWithDelegation("#happy", "test:bop", TestController.doSomethingElse)
+      Event.observeElementsDirectly("#sad", "test:beep", TestController.doSomething)
+      Event.observeElementsDirectly("#sad", "test:bop", TestController.doSomethingElse)
+      Event.observeElementsDirectly("#ok", "test:beep", TestController.doSomething)
+      Event.observeElementsDirectly("#ok", "test:bop", TestController.doSomethingElse)
+
+      insertSadDiv()
+
+      Event.stopObservingAllSelectors()
+
+      Event.updateObserversFor('happy')
+
+      $('happy').fire("test:beep")
+      $('happy').fire("test:bop")
+      $('sad').fire("test:beep")
+      $('sad').fire("test:bop")
+      $('ok').fire("test:beep")
+      $('ok').fire("test:bop")
+      $('happy').fire("test:click")
+    },
+    "Behavior.add('selector::event', handler) should register that handler using Event.observeElements":function() {
+      $T(Event).shouldReceive('observeElements').withArgs("#happy","test:click-direct", TestController.doSomething)
+      Behavior.add("#happy::test:click-direct", TestController.doSomething)
+    },
+    "Behavior.add('selector', behaviorModule) should register each of the module's functions starting with '::' as a handler for an event of the same name": function() {
+      $T(Event).shouldReceive('observeElements').twice().eachTimeWithArguments({
+        1: ["#happy", "test:foo", MyBehavior['::test:foo']],
+        2: ["#happy", "test:bar", MyBehavior['::test:bar']]
+      })
+
+      Behavior.add("#happy", MyBehavior)
+    },
+    "Behavior.add(selector, [handlers or modules]) should add each handler or module to that selector": function() {
+      TestController.shouldReceive('doSomething').verifying(function(e){e.name.shouldEqual('test:click') && e.element().id.shouldEqual('happy')})
+      TestController.shouldReceive('doSomethingElse').verifying(function(e){e.name.shouldEqual('test:click') && e.element().id.shouldEqual('happy')})
+      TestController.shouldReceive('doOther').verifying(function(e){e.name.shouldEqual('test:click') && e.element().id.shouldEqual('happy')})
+      
+      MyBehavior.shouldReceive('::test:foo').verifying(function(e){e.name.shouldEqual('test:foo') && e.element().id.shouldEqual('ok')})
+      MyBehavior.shouldReceive('::test:bar').verifying(function(e){e.name.shouldEqual('test:bar') && e.element().id.shouldEqual('ok')})
+      
+      AnotherBehavior.shouldReceive('::test:foo').verifying(function(e){e.name.shouldEqual('test:foo') && e.element().id.shouldEqual('ok')})
+      AnotherBehavior.shouldReceive('::test:baz').verifying(function(e){e.name.shouldEqual('test:baz') && e.element().id.shouldEqual('ok')})
+      
+      
+      Behavior.add("#happy::test:click", [TestController.doSomething, TestController.doSomethingElse, TestController.doOther])
+      Behavior.add("#ok", [MyBehavior, AnotherBehavior])
+      
+      $('happy').fire("test:click")
+      $('ok').fire("test:foo")
+      $('ok').fire("test:bar")
+      $('ok').fire("test:baz")
+    },
+    "Behavior.add({map of selectors and handlers}) should apply Behaior.add to each map, using the key as a selector": function() {
+      TestController.shouldReceive('doSomething')
+      Behavior.add({
+        "#happy::test:click": TestController.doSomething
+      })
+      
+      $('happy').fire("test:click")
+    }
+    
+  })
+// ]]>
+</script>
+
+</script>
+</body>
+</html>

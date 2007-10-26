@@ -1,0 +1,133 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>JavaScript unit test file</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <script src="../lib/prototype.js" type="text/javascript"></script>
+  <script src="../lib/unittest.js" type="text/javascript"></script>
+  
+  <script src="../src/should_receive.js" type="text/javascript"></script>
+  <link rel="stylesheet" href="../lib/unittest.css" type="text/css" />
+</head>
+<body>
+<div id="testlog"></div>
+<script type="text/javascript">
+// <![CDATA[
+  Test.context("shouldReceive extensions to BDD-style unit tests", {
+    setup: function() {
+      TestObject = {}
+      window.testFunction = function () {
+        return true
+      }
+      window.anotherTestFunction = function() {return true;}
+    },
+    "should be able to extend an object in place using $T()": function() {
+      $T(TestObject)
+      TestObject.shouldEqual(TestObject)
+    },
+    "should add shouldReceive to Test.BDDMethods": function() {
+      Object.extend(TestObject, Test.BDDMethods)
+      $T(TestObject.shouldReceive).shouldNotBeNull()
+    },
+    "should be able to verify an object received a certain method": function() {
+      $T(window).shouldReceive("testFunction")
+      $T(window).shouldReceive("anotherTestFunction")
+      testFunction()
+      anotherTestFunction()
+    },
+    "should be able to verify an object received a certain method with certain arguments": function() {
+      $T(window).shouldReceive("testFunction").withArgs(1,2,3)
+      $T(window).shouldReceive("anotherTestFunction").withArgs(TestObject, "foo")
+      testFunction(1,2,3)
+      anotherTestFunction(TestObject, "foo")
+    },
+    "should be able to use a custom function for verifying how a method was called": function() {
+      $T(window).shouldReceive("testFunction").verifying(function(arg) {
+        'foo'.shouldEqual(arg)
+      })
+      $T(window).shouldReceive("anotherTestFunction").verifying(function(arg) {
+        arg.shouldEqual('bar')
+      })
+      testFunction("foo")
+      anotherTestFunction("bar")
+    },
+    "should allow for verifying an exact receive count": function() {
+      $T(window).shouldReceive("testFunction").exactly(3).times()
+      testFunction()
+      testFunction()
+      testFunction()
+    },
+    "should allow for verifying a minimum receive count": function() {
+      $T(window).shouldReceive("testFunction").atLeast(2).times()
+      testFunction()
+      testFunction()
+      testFunction()
+    },
+    "should allow for verifying a maximum receive count": function() {
+      $T(window).shouldReceive("testFunction").atMost(3).times()
+      testFunction()
+      testFunction()
+    },
+    "should allow for verifying a receive count of 'once'": function() {
+      $T(window).shouldReceive("testFunction").once()
+      testFunction()
+    },
+    "should allow for verifying a receive count of 'twice'": function() {
+      $T(window).shouldReceive("testFunction").twice()
+      testFunction()
+      testFunction()
+    },
+    "should allow for verifying any number of receive counts (testing 0)": function() {
+      $T(window).shouldReceive("testFunction").anyNumberOfTimes()
+    },
+    "should allow for verifying any number of receive counts (testing > 1)": function() {
+      $T(window).shouldReceive("testFunction").anyNumberOfTimes()
+      testFunction()
+      testFunction()
+      testFunction()
+      testFunction()
+    },
+    "should allow for verifying that a function NOT be called": function() {
+      $T(window).shouldNotReceive("testFunction")
+    },
+    "should allow for custom verification on each call": function() {
+      $T(window).shouldReceive("testFunction").exactly(3).times().verifyingEachTime({
+        1: function(a) { a.length.shouldEqual(1) },
+        2: function(a) { a.length.shouldEqual(2) },
+        3: function(a) { a.length.shouldEqual(3) }
+      })
+      testFunction("a")
+      testFunction("aa")
+      testFunction("aaa")
+    },
+    "should allow for repeated argument verification": function() {
+      $T(window).shouldReceive("testFunction").exactly(3).times().eachTimeWithArguments({
+        1: "foo",
+        2: ["bar",12],
+        3: "baz"
+      })
+      testFunction("foo")
+      testFunction("bar",12)
+      testFunction("baz")
+    },
+    "should not confuse 2 different objects": function() {
+      Foo = {qux: function(){}}
+      Bar = {qux: function(){}}
+      $T(Foo)
+      $T(Bar)
+      Foo.shouldReceive('qux')
+      Bar.shouldReceive('qux')
+      Foo.qux()
+      Bar.qux()
+    },
+    "should not remember previous checks": function() {
+      testFunction()
+      pass()
+    }
+  })
+// ]]>
+</script>
+
+</body>
+</html>
