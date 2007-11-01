@@ -1,0 +1,112 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>JavaScript unit test file</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <script src="../lib/prototype.js" type="text/javascript"></script>
+  <script src="../lib/unittest.js" type="text/javascript"></script>
+  <script src="../src/should_receive.js" type="text/javascript"></script>
+  
+  <script src="../src/utilities.js" type="text/javascript"></script>
+  <script src="../src/behavior.js" type="text/javascript"></script>
+  <link rel="stylesheet" href="../lib/unittest.css" type="text/css" />
+  <style type="text/css" media="screen">
+    form .tags {
+      padding:8px;
+      width:auto;
+      font-family: Arial;
+      font-size:12px;
+      font-weight:bold;
+      letter-spacing:4px;
+    }
+    form #name {
+      padding-right:14px;
+      display:block;
+    }
+    #textmetric__{
+      background:gray;
+    }
+    
+  </style>
+</head>
+<body>
+<div id="marker1" style="background:red; display:block; position:absolute; width:10px; height:10px">&nbsp;</div>
+<div id="marker2" style="background:blue; display:block; position:absolute; width:10px; height:10px">&nbsp;</div>
+<div id="marker3" style="background:green; display:block; position:absolute; width:10px; height:10px">&nbsp;</div>
+<p>
+  Visually verify that:
+  <ul>
+    <li>the blue square is aligned under the letter 'b'</li>
+    <li> red square under the letter 'd'</li>
+    <li> green square under the last letter</li>
+    <li> the email field is selected and that the caret is after the 'c'</li>
+  </ul>
+</p>
+<form action="validation_test.html" method="get" accept-charset="utf-8">
+  <label for="name">Name:</label>
+  <input type="text" name="name" value="" id="name" class="name"><br />
+  <label for="email">Email:</label>
+  <input type="text" name="email" value="" id="email" class="email"><br />
+  <label for="tags">Tags:</label>
+  <input type="text" name="tags" value="" id="tags" class="tags"><br />
+  <ul class="errors">
+  </ul>
+  <p><input type="submit" value="Continue &rarr;"></p>
+</form>
+<span id="boring">Not exciting.</span>
+
+<div id="testlog"></div>
+<script type="text/javascript">
+// <![CDATA[
+  Test.context("The utility extensions", {
+    setup: function() {
+      $('tags').value = "abc def ghi jkl"
+      $('email').value = "abcdefg"
+    },
+    teardown: function() {
+      ;
+      // Event.stopObservingAllSelectors()
+    },
+    "saveStyles / restoreStyles should save and restore styles without setting them": function() {
+      $('name').getStyle("display").shouldEqual("block")
+      $('name').getStyle("padding-right").shouldEqual("14px")
+      $('name').saveStyles("padding", "display")
+      $('name').getStyle("display").shouldEqual("block")
+      $('name').getStyle("padding-right").shouldEqual("14px")
+      $('name').setStyle({display:"inline"})
+      $('name').getStyle("display").shouldEqual("inline")
+      $('name').getStyle("padding-right").shouldEqual("14px")
+      $('name').restoreStyles()
+      $('name').getStyle("display").shouldEqual("block")
+      $('name').getStyle("padding-right").shouldEqual("14px")
+    },
+    "saveStyles / restoreStyles should save and restore styles with setting": function() {
+      $('name').getStyle("display").shouldEqual("block")
+      $('name').getStyle("padding-right").shouldEqual("14px")
+      $('name').saveStyles({paddingRight:"2px", display:"inline"})
+      $('name').getStyle("display").shouldEqual("inline")
+      $('name').getStyle("padding-right").shouldEqual("2px")
+      $('name').restoreStyles()
+      $('name').getStyle("display").shouldEqual("block")
+      $('name').getStyle("padding-right").shouldEqual("14px")
+    },
+    "getCharOffset should calculate the inner offset of characters in a text field": function() {
+      var o = $('tags').getCharOffset(4)
+      $('marker1').clonePosition($('tags'), {setWidth: false, setHeight: false, offsetTop: o.top, offsetLeft: o.left})
+      var o = $('tags').getCharOffset(0)
+      $('marker2').clonePosition($('tags'), {setWidth: false, setHeight: false, offsetTop: o.top, offsetLeft: o.left})
+      var o = $('tags').getCharOffset($('tags').value.length - 1)
+      $('marker3').clonePosition($('tags'), {setWidth: false, setHeight: false, offsetTop: o.top, offsetLeft: o.left})
+    },
+    "should allow getting and setting of the caret position": function() {
+      $('email').setCaretPosition(3)
+      $('email').getCaretPosition().shouldEqual(3)
+    }
+  })
+// ]]>
+</script>
+
+</script>
+</body>
+</html>
