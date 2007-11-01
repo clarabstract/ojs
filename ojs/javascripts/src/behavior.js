@@ -10,6 +10,33 @@ Highlights:
   - Uniform interface to stop onserving a given selector (applied using either method), can be further limited 
     by event type and handler, or can simply stop observing ALL events registered through it
   - Can assign either individual handler functions or behavior modules (which keep their own handler functions)
+  
+To-Do:
+  - Allow a handler to be called for an unknown event...?
+  - "::init" pseudo-event - basically just a function that gets executed immediately on all matching events (defer to $().wrap, maybe?)
+  - Configure({attrib: "blah"}) function-factory that sets an attribute on an element
+  - or better yet just have a "::configure" pseudo instead... Combined with KVC-style Element.get()  it would be rather handy
+  - "::submit|valid" for alternation
+  - "::submit>first"
+  - allow delegated events to 'bubble' anyway
+  - Maybe the "::test:click-direct" methods can just be called "on_test_click-direct" or something? meh...
+
+Problem:
+Concurrent observing of common actions that MAY need to be ordered a certain way
+e.g.
+  usually:    submit -> normal send
+  but maybe:  submit -> send ajax
+  but maybe:  submit -> validate -> normal send
+  but maybe:  submit -> validate -> send ajax
+  but NEVER:  submit -> send ajax -> validate
+
+Maybe just rely on specific sequence... ?
+  -> Yes. Sequence is your business.
+
+  
+ 
+
+Before/after?
 
 */
 // The main 'public' module
