@@ -102,6 +102,26 @@
     "should allow getting and setting of the caret position": function() {
       $('email').setCaretPosition(3)
       $('email').getCaretPosition().shouldEqual(3)
+    },
+    "should allow in-place function wrapping": function() {
+      TestObj = {foo: function(){}}
+      Verifier = {bar: function(proceed, val){return proceed(val)}}
+      $T(TestObj).shouldReceive('foo').withArgs('bzz')
+      $T(Verifier).shouldReceive('bar').verifying(function(p, val){
+        val.shouldEqual('bzz')
+      })
+
+      Wrap(TestObj,'foo', Verifier.bar)
+      
+      TestObj.foo('bzz')
+    },
+    "should allow in-place before/after method augmentation": function() {
+      Foo = {fff: function(){}}
+      Bar = {bbb: function(){}}
+      $T(Foo).shouldReceive('fff').withArgs(42)
+      $T(Bar).shouldReceive('bbb').withArgs(42)
+      doAfter(Foo, 'fff', Bar.bbb)
+      Foo.fff(42)
     }
   })
 // ]]>

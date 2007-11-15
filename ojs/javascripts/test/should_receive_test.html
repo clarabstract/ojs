@@ -121,6 +121,15 @@
       Foo.qux()
       Bar.qux()
     },
+    "should only check objects once": function() {
+      TestObject = {a:Prototype.K, b:Prototype.K}
+      $T(TestObject)
+      TestObject.shouldReceive('a')
+      TestObject.shouldReceive('b')
+      TestObject.a()
+      TestObject.b()
+      
+    },
     "should not remember previous checks": function() {
       testFunction()
       pass()
