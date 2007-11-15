@@ -1,3 +1,16 @@
+/*
+Element extentions:
+  - temporarily modify an element's style using save/restore stles
+  - measure the inner offset (in px)  of a character in a text field
+  - get/set the caret position in a text field
+
+Functional extentions:
+  - In-place .wrap
+
+  
+
+*/
+
 Element.addMethods({
   // Restores styles to their original state before saveStyles()
   restoreStyles: function(element) {
@@ -99,3 +112,28 @@ Element.addMethods({
      }
    }
 })
+
+// Just a shortcut for wrapping a method in-place, without repeating yourself.
+function Wrap(obj, fnName, wrapFn) {
+  obj[fnName] = obj[fnName].wrap(wrapFn)
+}
+
+// Shortcut to augment a method by performing something after it's run.
+// Like Wrap() but less overhead (and no need to proceed() )
+// Unlike wrap can't affect how/if the original method is called.
+function doAfter(obj, fnName, afterFn) {
+  var __method = obj[fnName];
+  obj[fnName] =  function() {
+    var ret = __method.apply(obj, arguments);
+    afterFn.apply(obj, arguments);
+    return ret;
+  }
+}
+// Like doAfter, but runs the callback before the original function...
+function doBefore(obj, fnName, beforeFn) {
+  var __method = obj[fnName];
+  obj[fnName] =  function() {
+    beforeFn.apply(obj, arguments);
+    return __method.apply(obj, arguments);
+  }
+}

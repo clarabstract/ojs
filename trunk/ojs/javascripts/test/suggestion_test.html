@@ -14,9 +14,8 @@
   <script src="../src/suggestion.js" type="text/javascript"></script>
   <link rel="stylesheet" href="../lib/unittest.css" type="text/css" />
   <style type="text/css" media="screen">
-    #suggestions {
+    #suggestions, #test_box {
       border: 2px solid blue;
-      padding:3px;
       background: white;
       position: absolute;
     }
@@ -32,39 +31,115 @@
 <div id="testlog"></div>
 <script type="text/javascript">
 // <![CDATA[
-  Ajax = {
-    "::submit": function(ev) {
-      ev.stop()
-      console.log(arguments)
-    }
-  }
-  
-  dataSource = function(key) {
-    data = {
-      "a": ["animal", "aardvark", "anatomy"],
-      "an": ["anatomy", "animal"],
-      "b": ["bop", "ball"]
-    }
-    return data[key] || []
-  }
-  
   Behavior.add({
-    ".tags":[ObserveTokens, Suggest(dataSource)],
+   ".tags": [new ShowSuggestions(),new ObserveTokens()]
   })
+  
+
   document.observe("dom:loaded", function() { Event.updateObserversFor(document.body) })
   Test.context("The Suggestion modules", {
     setup: function() {
-
+      dataTable = [
+        {name: "joe", count:12},
+        {name: "bob", count:32},
+        {name: "ted", count:2},
+        {name: "mike", count:58}
+      ]
+      
+      TestController = {
+        tokenActive: function(e) {
+          // console.log(e.name, e.memo)
+        }, 
+        tokenInactive: function(e) {
+          // console.log("not active")
+        }
+      }
+      $T(TestController)
     },
     teardown: function() {
       // Event.stopObservingAllSelectors()
     },
-    "TAC regex should be practical": function() {
-      var tacRegex = /^([A-Za-z0-9_\-]+|"[A-Za-z0-9_\- ]+")$/
-      assertMatch(tacRegex, 'fOo_123-zZ')
-      assert(!tacRegex.test('fOo_123 -zZ'))
-      assertMatch(tacRegex, '"fOo_123 -zZ"')
-      assert(!tacRegex.test('"fOo_123 -zZ'))
+    "ObserveTokens should recognize proper tokens ": function() {
+      TestController.shouldReceive("tokenActive").exactly(5).times().verifyingEachTime({
+        1:  function(e) {
+              e.memo.content.shouldEqual("abcde")
+              e.memo.position.shouldEqual(0)
+            },
+        2:  function(e) {
+              e.memo.content.shouldEqual("f")
+              e.memo.position.shouldEqual(6)
+            },
+        3:  function(e) {
+              e.memo.content.shouldEqual('"gh ijk')
+              e.memo.position.shouldEqual(8)
+            },
+        4:  function(e){
+              e.memo.content.shouldEqual('"gh ijk lmn"')
+              e.memo.position.shouldEqual(8)
+            },
+        5:  function(e) {
+              e.memo.content.shouldEqual('opqrst')
+              e.memo.position.shouldEqual(21)
+            }
+      })
+      TestController.shouldReceive("tokenInactive").atLeast(1).times()
+      Behavior.add({
+        ".email":new ObserveTokens(),
+        ".email::token:active": TestController.tokenActive,
+        ".email::token:inactive": TestController.tokenInactive
+      })
+      // Empty - should trigger nothing
+      $("email").focus()
+      $('tags').focus()
+      $("email").value = "abcde"
+      $('email').setCaretPosition(3)
+      $('tags').focus()
+      $("email").value = "abcde f"
+      $('email').setCaretPosition(7)
+      $('tags').focus()
+      $("email").value = 'abcde f "gh ijk'
+      $('email').setCaretPosition(10)
+      $('tags').focus()
+      $("email").value = 'abcde f "gh ijk lmn"'
+      $('email').setCaretPosition(10)
+      $('tags').focus()
+      $("email").value = 'abcde f "gh ijk lmn" opqrst'
+      $('email').setCaretPosition(22)
+    },
+    "Selection box should build tables that can be populated and select values": function() {
+      function assertRowSelected(idx) {
+        assert($('test_box').rows[idx].hasClassName('selected'))
+      }
+      function assertRowNotSelected(idx) {
+        assert(!$('test_box').rows[idx].hasClassName('selected'))
+      }
+      
+      sbox = new SelectionBox('test_box');
+      sbox.setData(dataTable)
+      sbox.show()
+      this.assert($('test_box'))
+      
+      sbox.select(1)
+      assertRowSelected(1)
+      
+      sbox.selectPrevious()
+      assertRowNotSelected(1)
+      assertRowSelected(0)
+      
+      sbox.selectPrevious()
+      assertRowNotSelected(0)
+      assertRowSelected(3)
+      
+      sbox.selectNext()
+      assertRowNotSelected(3)
+      assertRowSelected(0)
+      
+      sbox.selectNext()
+      assertRowNotSelected(0)
+      assertRowSelected(1)
+    },
+    "Data source should get data": function() {
+      
     }
     
   })

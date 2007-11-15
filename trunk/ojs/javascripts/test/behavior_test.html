@@ -15,6 +15,8 @@
 <div id="header">
   <div id="happy">A happy DIV!</div>
   <div id="ok"> I'm merely just ok.</div>
+  <input type="text" name="foo" value="a foo" id="foo" onfocus="Event.delegate(event)">
+  <input type="text" name="bar" value="a bar" id="bar">
 </div>
 <div id="testlog"></div>
 <script type="text/javascript">
@@ -46,6 +48,7 @@
       $T(MyBehavior)
       $T(AnotherBehavior)
       Event.doesNotBubble["test:no-bubble"] = true
+      $('bar').focus()
     },
     teardown: function() {
       Event.stopObservingAllSelectors()
@@ -207,9 +210,9 @@
       Behavior.add("#happy::test:click-direct", TestController.doSomething)
     },
     "Behavior.add('selector', behaviorModule) should register each of the module's functions starting with '::' as a handler for an event of the same name": function() {
-      $T(Event).shouldReceive('observeElements').twice().eachTimeWithArguments({
-        1: ["#happy", "test:foo", MyBehavior['::test:foo']],
-        2: ["#happy", "test:bar", MyBehavior['::test:bar']]
+      $T(Event).shouldReceive('observeElements').twice().verifyingEachTime({
+        1: function(sel, evName){sel.shouldEqual("#happy"); evName.shouldEqual("test:foo")},
+        2: function(sel, evName){sel.shouldEqual("#happy"); evName.shouldEqual("test:bar")}
       })
 
       Behavior.add("#happy", MyBehavior)
@@ -241,6 +244,45 @@
       })
       
       $('happy').fire("test:click")
+    },
+    "Event.delegate(event) should manually trigger non-bubble events": function(){
+      // IE + focus = pain
+      if(!Prototype.Browser.IE) {
+        Event.doesNotBubble["focus"] = false
+        TestController.shouldReceive('doSomething').verifying(function(e) {
+          e.name.shouldEqual("focus")
+          e.element().id.shouldEqual("foo")
+        })
+        Behavior.add("#foo::focus", TestController.doSomething)        
+        $('foo').focus()
+      }
+    },
+    "Event.stop() should stop a chain of delegate events.": function() {
+      Chain = {
+        First: function(ev) {ev.stop()},
+        Second: function(ev) {}
+      }
+      $T(Chain).shouldReceive('First')
+      $T(Chain).shouldNotReceive('Second')
+      Behavior.add("#happy::test:click", [Chain.First, Chain.Second])
+      $('happy').fire("test:click")
+    },
+    "Event handler functions for behavior classes should be bound to their instance": function() {
+      Blah = {
+        "::test:click": function(){this.verify() },
+        verify: function(){}
+      }
+      $T(Blah).shouldReceive('verify')
+      Behavior.add("#happy", Blah )
+      $('happy').fire("test:click")
+    },
+    "Event strings should accept parameters" : function() {
+      Behavior.add("#happy::click(RIGHT)", function(e){console.log(this, e)} )
+      // ::keypress(ENTER)
+      // Event.addFilter('click', null, function(filterParam) {
+      //   var params = filterParam.split(",")
+      // })
+      true
     }
     
   })

@@ -17,9 +17,11 @@ Test.BDD = {
   shouldReceive: function(test, functionName) {
     var check = new Test.BDD.Check({object: this, message:functionName, checked: false})
     check.exactly(1)
-    this.__bddChecks = this.__bddChecks || {}
+    if(!this.__bddChecks) { 
+      this.__bddChecks = {}
+      Test.BDD.checkedObjects.push(this)
+    }
     this.__bddChecks[functionName] = check
-    Test.BDD.checkedObjects.push(this)
     //Only wrap once!
     if(!this[functionName]._bddWrapped) {
       this[functionName] = this[functionName].wrap(Test.BDD.wrapperFor(this,functionName))

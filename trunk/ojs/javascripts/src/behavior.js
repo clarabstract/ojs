@@ -45,20 +45,26 @@ Behavior = {
   add: function(selector, handler) {
     if(Object.isString(selector)) {
       if(Object.isArray(handler)) {
+        //Applying several handlers for a selector
         for (var i=0; i < handler.length; i++) {
           Behavior.add(selector, handler[i])
         };
         return;
       }
       if(r = selector.match(/(.*)::([-\w\d_:]*)$/)){
+        //Applying a handler function directly
         Event.observeElements(r[1], r[2], handler)
       } else {
+        //Applying a behavior class.
         for(m in handler) {
-          if(r = m.match(/^::(.*)/))
-          Event.observeElements(selector, r[1], handler[m])
+          if(r = m.match(/^::(.*)/)) {
+            handler[m] = handler[m].bind(handler)
+            Event.observeElements(selector, r[1], handler[m]) 
+          }
         }
       }   
     } else {
+      //Configuring many selectors at once
       for( s in selector) {
         Behavior.add(s, selector[s])
       }
@@ -86,12 +92,7 @@ EventExtentions = {
   // Allows consistent access to the event name via ev.name (i.e. also works for custom events)
   extend: Event.extend.wrap(
     function(proceed, event) {
-      event.name =  event.eventName || event.type;
-      event.delegate = function() {
-        var delegateHandlerName = Event._makeDelegateHandler(event.name)
-        Event[delegateHandlerName](event)
-        return true;
-      }
+      event.name = event.name || event.eventName || event.type;
       return proceed.apply(this, Array.prototype.slice.call(arguments,1))
     }
   ),
@@ -127,7 +128,7 @@ EventExtentions = {
   //    This also means that it will work just fine on elements that don't yet exist on the page
   // (Note: usually Event.observeElements should be used instead - it is smart enough to know that certain,
   // events don't bubble and will directly observe those instead. However, you can force delegation using this 
-  // method if, for instance, you're using inline handlers with event.delegate() for performance reasons)
+  // method if, for instance, you're using inline handlers with Event.delegate(event) for performance reasons)
   observeElementsWithDelegation: function(sel, eventName, handler) {
     var delegateHandlerName = Event._makeDelegateHandler(eventName)
     Event[delegateHandlerName].handlers[sel] = Event[delegateHandlerName].handlers[sel]  || []
@@ -136,11 +137,17 @@ EventExtentions = {
     DelegatesBySelectorCache[sel] = DelegatesBySelectorCache[sel] || {}
     DelegatesBySelectorCache[sel][eventName] = Event[delegateHandlerName].handlers[sel]
     
-    Event.observe(document, eventName, Event[delegateHandlerName] )
+    //Don't observe for events that (theoretically) never bubble
+    if(!Event._neverBubbles[eventName]) Event.observe(document, eventName, Event[delegateHandlerName] )
   },
-  // A list of events that are known not to bubble
   // For performance reason it is a hash rather then an array
+  // You can modify Event.doesNotBubble if you wish to always use inline delegation for these events
   doesNotBubble: {
+    // Populated from Event._neverBubbles
+  },
+  // PRIVATE - these events will never be observed for the document - even when forced to. Only modify if you know
+  // for a fact the browser will actually honest-to-god bubble these events
+  _neverBubbles: {
     focus: true, blur: true, submit: true, change: true
   },
   // Allows one to observe events based on CSS-Selectors.
@@ -154,6 +161,7 @@ EventExtentions = {
     var observeMethod = Event.doesNotBubble[eventName] ? Event.observeElementsDirectly : Event.observeElementsWithDelegation
     if(forceMethod == "direct") observeMethod = Event.observeElementsDirectly
     if(forceMethod == "delegated") observeMethod = Event.observeElementsWithDelegation
+    // console.log("Observe", sel, "::"+eventName, observeMethod == Event.observeElementsDirectly ? "direct" : "delegated" )
     observeMethod(sel, eventName, handler)
   },
   // Stops observing a particular selector, possibly for just a particular eventName, possibly for just a particular handler
@@ -199,6 +207,10 @@ EventExtentions = {
       DelegatesBySelectorCache = {}
     }
   },
+  delegate: function(ev) {
+    ev = Event.extend(ev)
+    Event[Event._makeDelegateHandler(ev.name)](ev)
+  },
   // PRIVATE - a factory for creating a delegate handler for a particular event type
   _makeDelegateHandler: function(eventName) {
     var delegateHandlerName = "__handler_for_"+eventName
@@ -207,7 +219,13 @@ EventExtentions = {
         var handlers = Event[delegateHandlerName].handlers
         var element = ev.element()
         for(sel in handlers) {
-          if(element.match(sel)) handlers[sel].invoke('call', ev.element(), ev)
+          if(element.match && element.match(sel)) {
+            var selHandlers = handlers[sel];
+            for (var i=0; i < selHandlers.length; i++) {
+              if(ev.stopped) return false;
+              selHandlers[i].call(element, ev)
+            }
+          }
         }
       }
       Event[delegateHandlerName].handlers = {}
@@ -216,4 +234,5 @@ EventExtentions = {
   }
 }
 Object.extend(Event, EventExtentions)
+Object.extend(Event.doesNotBubble, Event._neverBubbles)
 
