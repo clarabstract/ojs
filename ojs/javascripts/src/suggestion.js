@@ -1,3 +1,25 @@
+/*  Suggestion Modules (i.e. auto-complete behaviors for text boxes)
+
+    Instead of providing a monolithic Suggestion class, this behavior is broken in modules with intentionally limited responsibilities.
+    
+    DataArray
+      Stores an array of data.
+      
+      + Selection
+      Stores a selection inside an array.
+      
+      + TableRender
+      Renders an array as an html table, including selection.
+      
+      
+      
+    
+  
+  
+
+*/
+
+
 /* Observe Tokens Behavior
   
   Attatch to text fields.
@@ -49,6 +71,9 @@ ObserveTokens = Class.create({
 })
 
 
+
+
+
 /* A table that can be generated form an array of rows and is aware of selections.
 */
 SelectionBox = Class.create({
@@ -58,7 +83,7 @@ SelectionBox = Class.create({
     this.clear()
   },
   clear: function() {
-    this.table.innerHTML = ""
+    this.table.innerHTML = "";
     this.selection = null;
     this.selectionEl = null;
   },
@@ -209,7 +234,20 @@ tagSuggestions = {
 }
 
 
+Behavior(".tag", new AutoComplete({
+  dataSource:     new AjaxDataSource("/whatever"),
+  selectionBox:   $('mySelection')
+}))
 
+AutoComplete = BehaviorModule({
+  initialize: function(config) {
+    this.config = config || {};
+    this.config.selectionBox.setDataSource(this.dataSource)
+  },
+  "::element:configure": function(ev){
+    
+  }
+})
 
 ShowSuggestions = Class.create({
   initialize: function(){
@@ -246,24 +284,20 @@ ShowSuggestions = Class.create({
     SelectionBox.suggestions().hide()
     ev.element().currentToken = null;
   },
-  "::keydown": function(ev){
-    switch(ev.keyCode) {
-      case Event.KEY_ESC:
-        SelectionBox.suggestions().hide()
-        ev.stop()
-      break;
-      case Event.KEY_UP:
-        SelectionBox.suggestions().selectPrevious()
-        ev.stop()
-      break;
-      case Event.KEY_DOWN:
-        SelectionBox.suggestions().selectNext()
-        ev.stop()
-      break;
-      case Event.KEY_RETURN:
-        SelectionBox.suggestions().selectCurrent()
-        ev.stop()
-      break;
-    }
+  "::keydown(ESC)": function(ev){
+    SelectionBox.suggestions().hide()
+    ev.stop()
+  },
+  "::keydown(UP)": function(ev) {
+    SelectionBox.suggestions().selectPrevious()
+    ev.stop()    
+  },
+  "::keydown(DOWN)": function(ev) {
+    SelectionBox.suggestions().selectNext()
+    ev.stop()    
+  },
+  "::keydown(RETURN)": function(ev) {
+    SelectionBox.suggestions().selectCurrent()
+    ev.stop() 
   }
 })
