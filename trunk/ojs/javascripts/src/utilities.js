@@ -137,3 +137,13 @@ function doBefore(obj, fnName, beforeFn) {
     return __method.apply(obj, arguments);
   }
 }
+
+// It's the reverse of methodize().
+Function.prototype.functionize = function() {
+  if (this._functionized) return this._functionized;
+  var __method = this;
+  return this._functionized = function() {
+    var args = $A(arguments);
+    return __method.apply(args.shift(), args);
+  };
+};

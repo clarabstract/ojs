@@ -37,7 +37,6 @@
     "::test:foo": function(){},
     "::test:baz": function(){}
   }
-
   // Utilities
   function insertSadDiv() {
     $('happy').insert(new Element('div', {id:"sad"}).update(':('))
@@ -278,10 +277,7 @@
     },
     "Event strings should accept parameters" : function() {
       Behavior.add("#happy::click(RIGHT)", function(e){console.log(this, e)} )
-      // ::keypress(ENTER)
-      // Event.addFilter('click', null, function(filterParam) {
-      //   var params = filterParam.split(",")
-      // })
+      
       true
     }
     

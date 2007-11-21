@@ -11,63 +11,132 @@ Highlights:
     by event type and handler, or can simply stop observing ALL events registered through it
   - Can assign either individual handler functions or behavior modules (which keep their own handler functions)
   
-To-Do:
-  - Allow a handler to be called for an unknown event...?
-  - "::init" pseudo-event - basically just a function that gets executed immediately on all matching events (defer to $().wrap, maybe?)
-  - Configure({attrib: "blah"}) function-factory that sets an attribute on an element
-  - or better yet just have a "::configure" pseudo instead... Combined with KVC-style Element.get()  it would be rather handy
-  - "::submit|valid" for alternation
-  - "::submit>first"
-  - allow delegated events to 'bubble' anyway
-  - Maybe the "::test:click-direct" methods can just be called "on_test_click-direct" or something? meh...
-
-Problem:
-Concurrent observing of common actions that MAY need to be ordered a certain way
-e.g.
-  usually:    submit -> normal send
-  but maybe:  submit -> send ajax
-  but maybe:  submit -> validate -> normal send
-  but maybe:  submit -> validate -> send ajax
-  but NEVER:  submit -> send ajax -> validate
-
-Maybe just rely on specific sequence... ?
-  -> Yes. Sequence is your business.
-
+Problems:
+  Allow behaviors to attatch another (pre-req) behavior. done
+  Certian behaviors (like custom events) should only attatch once. maybe
+  Allow behaviors to configure an element the first time (and only the first time) they are ran. done
   
- 
 
-Before/after?
+Design Decision Notes:
+  - Ordering behaviors IS your responsibility.
 
+
+Event Selectors:
+  A string describing a particular event.
+
+  <event name> (<event parameters>)* !<attatchment method>*
+  * = optional
+  <event name>          is the DOM event name (e.g. "click") or a cusotm event name ("dom:loaded").
+  <event parameters>    allow you to filter within a particular event. e.g. "keypress(ENTER +ctrl)". See also: EventFilters module.
+  <attatchment method>  forced observer attatchment to be done either directly or via delegation.
+                        e.g.  "click !direct"
+                              "focus !delegated"
+                              
+Behavior Modules:
+  Behavior modules are simply objects that have properties in the form of "::<event selector>" (see above).
+  
+  e.g. {
+        "::click":function(event){
+            alert("Hello there!");
+         }
+       }
+  
+  They are usually passed to the Behavior() function. There is nothing terribly special about them. You can use an instantiated
+  class, a consturctor function ("return {...}") or anything else really. 
+  
+  Note:
+    - Your handler functions (those that begin with "::") will receieve the event object as their first argument.
+    - *Important!* Unlike normal event handler functions, this will NOT refer to the event's source element. Event handler functions
+      will be bound (using .bind) to their parent object. (The element can still be accessed using ev.element)
+    - Functions that don't begin with "::" are simply ignored.
+  
+  Fake events:
+
+    ::behavior:applied
+    
+      Called as soon as your behavior is applied, allowing you to add prerequisite behaviors if needed.
+      
+      ev.selector
+    
+    "::element:configure"
+      
+      Called whenever we first encounter an actual instance of the element you are observing. In the case of directly observed events, 
+      this will happen as soon as you add the behavior in question. In the case of delegated events, it will happen as soon as the element
+      is matched by a document-wide listener.
+      
+      ev.element()
+        
+    
+  
 */
-// The main 'public' module
-Behavior = {
-  // Many ways to call - see behavior_test.html and main docs
-  add: function(selector, handler) {
-    if(Object.isString(selector)) {
-      if(Object.isArray(handler)) {
-        //Applying several handlers for a selector
-        for (var i=0; i < handler.length; i++) {
-          Behavior.add(selector, handler[i])
-        };
-        return;
-      }
-      if(r = selector.match(/(.*)::([-\w\d_:]*)$/)){
-        //Applying a handler function directly
-        Event.observeElements(r[1], r[2], handler)
-      } else {
-        //Applying a behavior class.
-        for(m in handler) {
-          if(r = m.match(/^::(.*)/)) {
-            handler[m] = handler[m].bind(handler)
-            Event.observeElements(selector, r[1], handler[m]) 
-          }
-        }
-      }   
+
+
+
+/*  Behavior()
+
+      Attatch behavior to some elements (based on selector).
+
+    Several call signatures:
+    
+    Simple event to function hookup
+      Just a shortcut for Event.observeElements(selector, eventSelector, handler). 
+      See also: Event Selectors
+
+      e.g. Behavior(".css.selector::event(selector)", someFunction )
+    
+    Attactch a whole set of handlers  :
+      Provide an object whose properties can be mapped to event handlers.
+      See also: Behavior Modules
+
+      e.g. Behavior(".css.selector", {"::event(selector)":handlerFunction, "::another:selector":anotherHandler, etc})
+    
+    Multiple handlers.
+      Provide an array of functions or modules to attatch them all at the same time.
+      
+      e.g. Behavior(".css.selector", [firstModule, secondModule, thirdModule] )
+           Behavior(".css.selector::event(selector)", [firstFunction, secondFunction, thridFunction] )
+    
+    Multiple selectors
+      As a convenience, if you provide a hash (as in, map/dictionary/JS Object) as the first argument, each member
+      will be applied as a selector/handler pair.
+
+      e.g. Behavior({
+             ".selector":    aModule
+             ".blah::click": [aFunction, anotherFunction]
+           })
+      
+      Is the same as:
+           Behavior(".selector", aModule)
+           Behavior(".blah::click", [aFunction, anotherFunction])
+    
+*/
+
+Behavior = function(selector, handler) {
+  if(Object.isString(selector)) {
+    if(Object.isArray(handler)) {
+      //Applying several handlers for a selector
+      for (var i=0; i < handler.length; i++) {
+        Behavior.add(selector, handler[i])
+      };
+      return;
+    }
+    if(r = selector.match(/^(.*?)::(.*)$/)){
+      //Applying a handler function directly
+      Event.observeElements(r[1], r[2], handler)
     } else {
-      //Configuring many selectors at once
-      for( s in selector) {
-        Behavior.add(s, selector[s])
+      //Applying a behavior module.
+      for(m in handler) {
+        if(r = m.match(/^::(.*)/)) {
+          // Bind handler functions first
+          handler[m] = handler[m].bind(handler)
+          Event.observeElements(selector, r[1], handler[m]) 
+        }
       }
+    }   
+  } else {
+    //Configuring many selectors at once
+    for( s in selector) {
+      Behavior.add(s, selector[s])
     }
   }
 }
@@ -76,6 +145,7 @@ Behavior = {
 // The event caches
 EventCache = {}
 DelegatesBySelectorCache = {}
+EventFilters = {}
 
 // Some handy extentions
 
@@ -154,15 +224,21 @@ EventExtentions = {
   // It will use observeElementsWithDelegation unle"ss the eventName is in the doesNotBubble list, in which case it will use observeElementsDirectly
   // This behavior can be over-ridden by appending "-direct" or "-delegated" to the eventName
   //    e.g. observeElements(".foo", "click-direct", func) or observeElements(".foo", "submit-delegated", func)
-  observeElements: function(sel, eventName, handler) {
-    var r = eventName.match(/(.*)-(direct|delegated)$/) || []
-    eventName = r[1] || eventName
-    var forceMethod = r[2]
+  // TODO: document filters
+  observeElements: function(sel, eventString, handler) {
+    var r = eventString.match(/(.*?)(\((.*?)\))?(-(direct|delegated))?$/)
+    var eventName = r[1]; var filterParam = r[3]; var forceMethod = r[5];
+    
     var observeMethod = Event.doesNotBubble[eventName] ? Event.observeElementsDirectly : Event.observeElementsWithDelegation
     if(forceMethod == "direct") observeMethod = Event.observeElementsDirectly
     if(forceMethod == "delegated") observeMethod = Event.observeElementsWithDelegation
-    // console.log("Observe", sel, "::"+eventName, observeMethod == Event.observeElementsDirectly ? "direct" : "delegated" )
-    observeMethod(sel, eventName, handler)
+
+    // console.log("Observe", sel, "::"+eventName, observeMethod == Event.observeElementsDirectly ? "direct" : "delegated", filterParam ? (" with filter (" + filterParam) + ")" : "",   EventFilters[eventName] )
+    if(filterParam && (filterFunctions = EventFilters[eventName]) ) {
+      observeMethod(sel, eventName, Event._filterHandler(filterFunctions, filterParam, handler) )
+    } else {
+      observeMethod(sel, eventName, handler)
+    }
   },
   // Stops observing a particular selector, possibly for just a particular eventName, possibly for just a particular handler
   // Will stop observing current AND future elements for that selector
@@ -211,6 +287,10 @@ EventExtentions = {
     ev = Event.extend(ev)
     Event[Event._makeDelegateHandler(ev.name)](ev)
   },
+  addFilter: function(eventName, filterFn) {
+    EventFilters[eventName] = EventFilters[eventName] || []
+    EventFilters[eventName].push(filterFn)
+  },
   // PRIVATE - a factory for creating a delegate handler for a particular event type
   _makeDelegateHandler: function(eventName) {
     var delegateHandlerName = "__handler_for_"+eventName
@@ -231,8 +311,91 @@ EventExtentions = {
       Event[delegateHandlerName].handlers = {}
     }
     return delegateHandlerName
+  },
+  // PRIVATE - factory for filtered event handlers
+  _filterHandler: function(filterFunctions, filterParam, handlerFn) {
+    return function(ev) {
+      for (var i=0; i < filterFunctions.length; i++) {
+        var filterFn = filterFunctions[i];
+        if((ev.stopped) || !filterFn(filterParam, ev)) return false;
+      }
+      handlerFn.call(this, ev)
+    }
   }
 }
 Object.extend(Event, EventExtentions)
 Object.extend(Event.doesNotBubble, Event._neverBubbles)
 
+
+Filters = {
+  /*  Mouse button filter.
+
+      Applied to: click, mouseup, mousedown
+      
+      Params:
+        ::click(left)    - only left (normal) clicks
+        ::click(right)   - only right clicks
+        ::click(middle)  - only middle clicks
+  */
+  mouseBtnFilter: function(filterParam, ev) {
+    var filterParam = filterParam.match(/^[-\w\d_]+/)[0].toLowerCase()
+    switch(filterParam) {
+      case "left":    return Event.isLeftClick(ev);   break;
+      case "right":   return Event.isRightClick(ev);  break;
+      case "middle":   return Event.isMiddleClick(ev); break;
+    }
+  },
+  /*  Key filter
+      
+      Applied to: keyup, keydown, keypress (not reliable)
+      
+      Params:
+        ::keyup(RETURN)   - Any key from Event.KEY_*
+        ::keyup(a)        - Match to specific char
+        ::keyup(A)        - also matches (it's case insensitive - use +shift if you don't want that)
+  
+  */
+  keyFilter: function(filterParam, ev) {
+    var filterParam = filterParam.match(/^[-\w\d_]+/)[0].toUpperCase()
+    if( ev.keyCode == Event["KEY_"+filterParam]) return true;
+    if(String.fromCharCode(ev.charCode || ev.keyCode).toUpperCase() == filterParam) return true;
+  },
+  /*  Modifier key filter
+      
+      Applied to: mouseup, mousedown, click, keyup, keydown, keypress
+      
+      Params:
+        ::click(+shift)   
+        ::click(+alt)  
+        ::click(+ctrl)  
+        ::click(+meta)  
+  */
+  modifierKeyFilter: function(filterParam, ev) {
+    var r = filterParam.match(/(\+|\-)(shift|alt|ctrl|meta)/i);
+    if(!r) return true;
+    var inclusion = r[1];var modifier = r[2].toLowerCase(); 
+    return !!(inclusion == "+") == !!(ev[modifier+"Key"]);
+  }
+}
+Event.addFilter('mouseup',    Filters.mouseBtnFilter)
+Event.addFilter('mousedown',  Filters.mouseBtnFilter)
+Event.addFilter('click',      Filters.mouseBtnFilter)
+
+Event.addFilter('keyup',      Filters.keyFilter)
+Event.addFilter('keydown',    Filters.keyFilter)
+Event.addFilter('keypress',   Filters.keyFilter)
+
+
+Event.addFilter('mouseup',    Filters.modifierKeyFilter)
+Event.addFilter('mousedown',  Filters.modifierKeyFilter)
+Event.addFilter('click',      Filters.modifierKeyFilter)
+Event.addFilter('keyup',      Filters.modifierKeyFilter)
+Event.addFilter('keydown',    Filters.modifierKeyFilter)
+Event.addFilter('keypress',   Filters.modifierKeyFilter)
+
+
+document.observe("dom:loaded", function(){
+  Behavior.add("#happy::mousedown(right)", function(e){console.log('right click', this, e)} )
+  Behavior.add("#foo::keypress(LEFT)", function(e){console.log('left arr', this, e)} )
+  Behavior.add("#foo::keyup(a -shift)", function(e){console.log('a', this, e)} )
+})
