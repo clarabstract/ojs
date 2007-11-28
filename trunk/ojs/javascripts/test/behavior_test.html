@@ -7,6 +7,7 @@
   <script src="../lib/prototype.js" type="text/javascript"></script>
   <script src="../lib/unittest.js" type="text/javascript"></script>
   <script src="../src/should_receive.js" type="text/javascript"></script>
+  <script src="../src/utilities.js" type="text/javascript"></script>
   
   <script src="../src/behavior.js" type="text/javascript"></script>
   <link rel="stylesheet" href="../lib/unittest.css" type="text/css" />
@@ -277,8 +278,62 @@
     },
     "Event strings should accept parameters" : function() {
       Behavior.add("#happy::click(RIGHT)", function(e){console.log(this, e)} )
-      
+      this.fail("finish writing me")
       true
+    },
+    "Should be able to define new behaviors (named or not) using Behavior.create": function() {
+      Monitor = Behavior.create("monitor", {aMethod: "testMethod"})
+      mon = new Monitor({bar: "bar opt"})
+      mon.aMethod.shouldEqual("testMethod")
+      mon.options.bar.shouldEqual("bar opt")
+      mon.constructor.behaviorName.shouldEqual("monitor")
+
+      Snowflake = Behavior.create({doStuff:"testAgain"})
+      sno = new Snowflake({baz:"baz opt"})
+      sno.doStuff.shouldEqual("testAgain")
+      sno.options.baz.shouldEqual("baz opt")
+      assertNull(sno.constructor.behaviorName)
+    },
+    "A behavior module should receive a ::behavior:added callback with the selector in the memo": function() {
+      TestBehavior = $T({
+        "::behavior:added": Prototype.emptyFunction
+      })
+      TestBehavior.shouldReceive("::behavior:added").verifying(function(ev){
+        ev.selector.shouldEqual("#happy")
+      })
+      Behavior.add({"#happy":TestBehavior})
+    },
+    "Handler functions in behavior modules should be bound to the module (but only once)": function() {
+      var thisMemo;
+      TestConstruct = {
+        "::test:click": function(ev) {
+          thisMemo = this;
+        }
+      }
+      unfondledFunction = TestConstruct["::test:click"]
+      assertEqual(unfondledFunction, TestConstruct["::test:click"])
+      
+      Behavior.add("#happy", TestConstruct)
+      $('happy').fire("test:click")
+      assertEqual(thisMemo, TestConstruct)
+      
+      boundFunction = TestConstruct["::test:click"]
+      assertNotEqual(unfondledFunction, TestConstruct["::test:click"])
+      assertEqual(boundFunction, TestConstruct["::test:click"])
+      
+      Behavior.add("#sad", TestConstruct)
+      assertNotEqual(unfondledFunction, TestConstruct["::test:click"])
+      assertEqual(boundFunction, TestConstruct["::test:click"])
+    },
+    "Behavior modules with DIRECT events should receive a ::behavior:attached callback as soon as their element is detected": function() {
+      DirectBehavior = $T({
+        "::test:no-bubble": Prototype.emptyFunction,
+        "::behavior:attached": Prototype.emptyFunction
+      })
+      DirectBehavior.shouldReceive("::behavior:attached").verifying(function(ev){
+        assertEqual(ev.element(), "#happy")
+      })
+      Behavior.add("#happy", DirectBehavior)
     }
     
   })

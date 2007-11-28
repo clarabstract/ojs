@@ -139,7 +139,7 @@ function doBefore(obj, fnName, beforeFn) {
 }
 
 // It's the reverse of methodize().
-Function.prototype.functionize = function() {
+Function.prototype.functionize = Function.prototype.functionize || function() {
   if (this._functionized) return this._functionized;
   var __method = this;
   return this._functionized = function() {
@@ -147,3 +147,21 @@ Function.prototype.functionize = function() {
     return __method.apply(args.shift(), args);
   };
 };
+
+Function.prototype.rightCurry = Function.prototype.rightCurry || function(limit) {
+  if (arguments.length < 2 || (Object.isNumber(limit) && limit < 1)) return this;  
+  var __method = this, args = $A(arguments).slice(1);  
+  return function() { 
+    return __method.apply(this, ( Object.isNumber(limit)?$A(arguments).slice(0,limit):$A(arguments) ).concat(args) );  
+  }
+}
+
+// Removes el from array in-place
+Array.prototype.remove = function(el) {
+  for (var i = this.length - 1; i >= 0; i--){
+    if(this[i] == el) this.splice(i,1)
+  };
+  return this
+}
+
+

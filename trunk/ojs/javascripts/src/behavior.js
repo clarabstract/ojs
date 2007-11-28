@@ -12,10 +12,26 @@ Highlights:
   - Can assign either individual handler functions or behavior modules (which keep their own handler functions)
   
 Problems:
-  Allow behaviors to attatch another (pre-req) behavior. done
-  Certian behaviors (like custom events) should only attatch once. maybe
-  Allow behaviors to configure an element the first time (and only the first time) they are ran. done
-  
+  Allow behaviors to attach another (pre-req) behavior.
+    > Resolved by ::behavior:added callback/event.
+  Certian behaviors (like custom events) should only attach once.
+    --- to be resolved via named attachment
+  Allow behaviors to configure an element the first time (and only the first time) they are ran.
+    --- to be resolved via ::behavior:attached callback
+
+  - All behaviors need to have a name - user supplied name or auto-generated.
+    Only 1 behavior of that name can be applied to an element. (makes it easy to not call ::behavior:attached twice)
+    
+    e.g.
+      Tokenize() -> name = "tokenize"
+      ".foo": Tokenize(spaceTokenizerFn) 
+      ".bar": Tokenize(csvTokenizerFn) 
+      
+      <.foo.bar>.behaviors.tokenize.tokenizerFn == spaceTokenizerFn (since it was last)
+       should throw a warning ?
+      <.foo>.behaviors.tokenize.tokenizerFn == spaceTokenizerFn
+      <.bar>.behaviors.tokenize.tokenizerFn == csvTokenizerFn
+      
 
 Design Decision Notes:
   - Ordering behaviors IS your responsibility.
@@ -24,11 +40,11 @@ Design Decision Notes:
 Event Selectors:
   A string describing a particular event.
 
-  <event name> (<event parameters>)* !<attatchment method>*
+  <event name> (<event parameters>)* !<attachment method>*
   * = optional
   <event name>          is the DOM event name (e.g. "click") or a cusotm event name ("dom:loaded").
   <event parameters>    allow you to filter within a particular event. e.g. "keypress(ENTER +ctrl)". See also: EventFilters module.
-  <attatchment method>  forced observer attatchment to be done either directly or via delegation.
+  <attachment method>  forced observer attachment to be done either directly or via delegation.
                         e.g.  "click !direct"
                               "focus !delegated"
                               
@@ -70,11 +86,53 @@ Behavior Modules:
   
 */
 
+Behavior = Class.create({
+  initialize: function(options) {
+    this.options = options;
+  },
+  wireToEvents: function() {
+    var eventNames = $A(arguments);
+    var handlerName = eventNames.shift();
+    var handler = this.permaBind(handlerName);
+    for (var i = eventNames.length - 1; i >= 0; i--){
+      var eventName = eventNames[i];
+      var existingHandler = this["::"+eventName];
+      if(existingHandler) {
+        if(!Object.isArray(existingHandler)) this["::"+eventName] = [existingHandler]
+        this["::"+eventName].push(handler)
+      } else {
+        this["::"+eventName] = handler 
+      }
+    };
+  },
+  permaBind: function(methodName) {
+    if(!this[methodName].behavior) {
+      this[methodName] = this[methodName].bind(this).methodize()
+      this[methodName].behavior = this
+    }
+    return this[methodName];
+  }
+})
 
 
-/*  Behavior()
+// The event caches
+EventCache = {}
+DelegatesBySelectorCache = {}
+EventFilters = {}
+AttachmentCache = {}
 
-      Attatch behavior to some elements (based on selector).
+Behavior._identifierCounter = 0
+Behavior.create = function(name_or_methods, methods) {
+  var args = $A(arguments).reverse();
+  var behaviorClass = Class.create(Behavior, args[0]);
+  behaviorClass.classIdentifier = args[1] || ++Behavior._identifierCounter;
+  return behaviorClass;
+}
+
+
+/*  Behavior.add()
+
+      Attach behavior to some elements (based on selector).
 
     Several call signatures:
     
@@ -82,36 +140,36 @@ Behavior Modules:
       Just a shortcut for Event.observeElements(selector, eventSelector, handler). 
       See also: Event Selectors
 
-      e.g. Behavior(".css.selector::event(selector)", someFunction )
+      e.g. Behavior.add(".css.selector::event(selector)", someFunction )
     
     Attactch a whole set of handlers  :
       Provide an object whose properties can be mapped to event handlers.
       See also: Behavior Modules
 
-      e.g. Behavior(".css.selector", {"::event(selector)":handlerFunction, "::another:selector":anotherHandler, etc})
+      e.g. Behavior.add(".css.selector", {"::event(selector)":handlerFunction, "::another:selector":anotherHandler, etc})
     
     Multiple handlers.
-      Provide an array of functions or modules to attatch them all at the same time.
+      Provide an array of functions or modules to attach them all at the same time.
       
-      e.g. Behavior(".css.selector", [firstModule, secondModule, thirdModule] )
-           Behavior(".css.selector::event(selector)", [firstFunction, secondFunction, thridFunction] )
+      e.g. Behavior.add(".css.selector", [firstModule, secondModule, thirdModule] )
+           Behavior.add(".css.selector::event(selector)", [firstFunction, secondFunction, thridFunction] )
     
     Multiple selectors
       As a convenience, if you provide a hash (as in, map/dictionary/JS Object) as the first argument, each member
       will be applied as a selector/handler pair.
 
-      e.g. Behavior({
+      e.g. Behavior.add({
              ".selector":    aModule
              ".blah::click": [aFunction, anotherFunction]
            })
       
       Is the same as:
-           Behavior(".selector", aModule)
-           Behavior(".blah::click", [aFunction, anotherFunction])
+           Behavior.add(".selector", aModule)
+           Behavior.add(".blah::click", [aFunction, anotherFunction])
     
 */
 
-Behavior = function(selector, handler) {
+Behavior.add = function(selector, handler) {
   if(Object.isString(selector)) {
     if(Object.isArray(handler)) {
       //Applying several handlers for a selector
@@ -125,13 +183,7 @@ Behavior = function(selector, handler) {
       Event.observeElements(r[1], r[2], handler)
     } else {
       //Applying a behavior module.
-      for(m in handler) {
-        if(r = m.match(/^::(.*)/)) {
-          // Bind handler functions first
-          handler[m] = handler[m].bind(handler)
-          Event.observeElements(selector, r[1], handler[m]) 
-        }
-      }
+      Behavior.addModule(selector, handler)
     }   
   } else {
     //Configuring many selectors at once
@@ -141,21 +193,31 @@ Behavior = function(selector, handler) {
   }
 }
 
-
-// The event caches
-EventCache = {}
-DelegatesBySelectorCache = {}
-EventFilters = {}
-
-// Some handy extentions
-
-// Removes el from array in-place
-Array.prototype.remove = function(el) {
-  for (var i = this.length - 1; i >= 0; i--){
-    if(this[i] == el) this.splice(i,1)
-  };
-  return this
+/*  Actual implementation for Behavior.add with modules.
+    (Treat as private)
+    
+    In addition to hooking-up "::*" methods as observers, it also:
+      - addedToSelector callback
+      - attachedToElement callback
+    
+    NOTE: maybe this functionality would live a happier life in Behavior.create et al?
+*/
+Behavior.addModule = function(selector, module) {
+  if(module.addedToSelector)  module.addedToSelector(selector) ;
+  for(m in module) {
+    var r;
+    if( r = m.match(/^::(.*)/) ) {      
+      Event.observeElements(selector, r[1], module[m]) 
+    }
+  }
 }
+
+
+
+
+
+
+
 
 // Behavior specific functions later mixed into Event
 EventExtentions = {
@@ -173,7 +235,7 @@ EventExtentions = {
     EventCache[sel] = EventCache[sel] || {}
     EventCache[sel][eventName] = EventCache[sel][eventName] || []
     EventCache[sel][eventName].push(handler)
-    $$(sel).invoke('observe', eventName, handler);
+    $$(sel).each(Event._observeElementDirect.rightCurry(1, eventName, handler, sel))
   },
   // Call this to re-apply any event observing selectors for a new element.
   // ***ONLY NEEDED IF YOU'RE NOT USING DELEGATED EVENTS***
@@ -186,11 +248,35 @@ EventExtentions = {
         for(eventName in EventCache[sel]) {
           var handlers = EventCache[sel][eventName]
           for (var j=0; j < handlers.length; j++) {
-            matchingElements[i].observe(eventName, handlers[j])
+            Event._observeElementDirect(matchingElements[i],eventName, handlers[j], sel)
           };
         }
       };
     }
+  },
+  // PRIVATE - allows us to perform additional work before Event.observe()
+  _observeElementDirect: function(element, eventName, handler, selector){
+    if(Event._checkDuplicateClassIdentifier(element, handler)) {
+      Event.observe(element, eventName, handler);
+    }
+  },
+  // PRIVATE - ensures element doesn't have handlers from behaviors with same class identifiers
+  // (also calls the attachedToElement callback if apropriate)
+  _checkDuplicateClassIdentifier: function(element, handler) {
+    var attachmentCallback;
+    try {
+      var clId = handler.behavior.constructor.classIdentifier;
+      window.behaviors = window.behaviors || []
+      if(!element.attachedBehaviors) element.attachedBehaviors = {};
+      if(element.attachedBehaviors[clId]) {
+        if(element.attachedBehaviors[clId] != handler.behavior) return false;
+      } else {
+        element.attachedBehaviors[clId] = handler.behavior
+        attachmentCallback = handler.behavior.attachedToElement
+      }
+    } catch (e) { return true; }
+    if(attachmentCallback) attachmentCallback(element);
+    return true; 
   },
   // Like observeElementsDirectly, allows for use of selectors (to match several elements at once)
   // Unlike it, it uses the eficient and durable method of event delegation
@@ -302,8 +388,11 @@ EventExtentions = {
           if(element.match && element.match(sel)) {
             var selHandlers = handlers[sel];
             for (var i=0; i < selHandlers.length; i++) {
-              if(ev.stopped) return false;
-              selHandlers[i].call(element, ev)
+              if(  Event._checkDuplicateClassIdentifier(element, selHandlers[i]) 
+                   && !ev.stopped
+              ) {
+                selHandlers[i].call(element, ev)
+              }
             }
           }
         }
@@ -394,8 +483,8 @@ Event.addFilter('keydown',    Filters.modifierKeyFilter)
 Event.addFilter('keypress',   Filters.modifierKeyFilter)
 
 
-document.observe("dom:loaded", function(){
-  Behavior.add("#happy::mousedown(right)", function(e){console.log('right click', this, e)} )
-  Behavior.add("#foo::keypress(LEFT)", function(e){console.log('left arr', this, e)} )
-  Behavior.add("#foo::keyup(a -shift)", function(e){console.log('a', this, e)} )
-})
+// document.observe("dom:loaded", function(){
+//   Behavior.add("#happy::mousedown(right)", function(e){console.log('right click', this, e)} )
+//   Behavior.add("#foo::keypress(LEFT)", function(e){console.log('left arr', this, e)} )
+//   Behavior.add("#foo::keyup(a -shift)", function(e){console.log('a', this, e)} )
+// })
