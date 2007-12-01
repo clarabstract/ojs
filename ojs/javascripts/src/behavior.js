@@ -262,7 +262,6 @@ EventExtentions = {
   },
   // PRIVATE - allows us to perform additional work before Event.observe()
   _observeElementDirect: function(element, eventName, handler){
-    console.log('_oED', element, eventName, handler)
     if(Event._checkDuplicateClassIdentifier(element, handler)) {
       Event.observe(element, eventName, handler);
     }
@@ -281,7 +280,7 @@ EventExtentions = {
         element.attachedBehaviors[clId] = handler.behavior
         attachmentCallback = handler.behavior.attachedToElement
       }
-    } catch (e) { console.log('e', e); return true; }
+    } catch (e) { return true; }
     if(attachmentCallback) attachmentCallback(element);
     return true; 
   },
@@ -346,7 +345,7 @@ EventExtentions = {
       try{
         if(handler) DelegatesBySelectorCache[selector][eventName].remove(handler);
         else        DelegatesBySelectorCache[selector][eventName].clear();
-      } catch(e){console.log('e', e)}
+      } catch(e){ }
       if(EventCache[selector] && EventCache[selector][eventName] ) {
         if(handler) EventCache[selector][eventName].remove(handler);
         else        delete EventCache[selector][eventName];

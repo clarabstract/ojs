@@ -19,17 +19,21 @@ DataSource
 
 MonitorChange = Behavior.create("change:value", {
   initialize: function() {
-    this.wireToEvents("recordValue", "keydown","mousedown")
+    // keydown AND keypress are required due to opera/ie mess
+    this.wireToEvents("recordValue","keydown", "keypress", "mousedown")
     this.wireToEvents("checkValue", "keyup", "mouseup")
   },
   recordValue: function(element, event) {
+    log('rec',element.value)
     element.originalValue = this.getValue(element)
   },
   checkValue: function(element, event) {
-    if(element.originalValue != this.getValue(element)) this.fire(element)
+        log('wtf', element.originalValue + ":::"+ this.getValue(element));
+    if(element.originalValue != this.getValue(element)) this.fire(element);
   },
   fire: function(element) {
-    element.fire(this.constructor.classIdentifier)
+            log('fired', "")
+    // element.fire(this.constructor.classIdentifier)
   },
   getValue: Form.Element.getValue
 })
@@ -69,7 +73,6 @@ DataSource.Extentions = {}
 // Only makes sense for Ajax-based DataSource
 DataSource.Extentions.NonConcurrent = {
   query: function($super, params, updateCallback) {
-    console.log('aborting?', !!this.currentRequest)
     if(this.currentRequest) this.abort();
     $super(params, updateCallback);
   },
@@ -95,26 +98,20 @@ DataSource.Extentions.QueryCaching = {
     var cachedValue, serializedParams = Object.isString(params) ?  params : Object.toQueryString(params);
     if(cachedValue = this.queryCache[serializedParams]) {
       if(cachedValue == $processing) { 
-        console.log('skipping query ', serializedParams, '  because its alreayd processing')  
       } else {
-        console.log("using cached value for key", serializedParams, updateCallback)
         this.yieldResults(updateCallback, cachedValue) 
       }
     } else {
-      console.log('performing new query')
       $super(params, updateCallback);
-      console.log('ok..')
       this.currentRequest.queryParams = serializedParams;
       this.queryCache[serializedParams] = $processing;
     }
   },
   
   abort: function() {
-    console.log('aborting')
     this.currentRequest = null;
   },
   ajaxComplete: function($super, updateCallback, transport, json) {
-    console.log('caching query ', transport.request.queryParams, ' with data ', transport.responseJSON)
     this.queryCache[transport.request.queryParams] = transport.responseJSON;
     $super(updateCallback, transport, json)
   }
@@ -131,12 +128,6 @@ DataSource.Ajax.AutoComplete = Class.create(
 
 
 
-Element.makeDataDisplay = function (element) {
-  Object.extend(element, Element.makeDataDisplay.Methods)
-  for(selector in Element.makeDataDisplay.extenders) {
-    if( element.match(selector) ) Element.makeDataDisplay.extenders[selector](element)
-  }
-}
 
 Element.Extentions = Element.Extentions || {}
 
@@ -204,15 +195,6 @@ Element.Extentions.DropDown = {
   }
 }
 
-ArrowNav = Behavior.create({
-  initialize: function() {
-    this.wireToEvents("markNext", "keydown(DOWN)")
-  },
-  markNext: function() {
-    console.log('next')
-  }
-})
-
 //The big deal...
 AutoComplete = Behavior.create({
   initialize: function(dataSource, selectionBox) {
@@ -238,7 +220,7 @@ AutoComplete = Behavior.create({
     this.selectionBox.attachToElement(this.currentElement)
   },
   completionSelected: function(element, ev){
-    console.log('completion', ev.memo.record)
+    element.value = ev.memo.record.name
   }
 })
 
