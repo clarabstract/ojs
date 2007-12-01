@@ -165,3 +165,8 @@ Array.prototype.remove = function(el) {
 }
 
 
+Template.addMethods({
+  functionize: function() {
+    return this.evaluate.bind(this)
+  }
+})

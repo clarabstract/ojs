@@ -1,6 +1,6 @@
 [
-  ["animal", 12],
-  ["aardvark", 9],
-  ["anemone", 6],
-  ["arsenic", 3]
+  {name:"animal", ref_count:12},
+  {name:"aardvark", ref_count:9},
+  {name:"anemone", ref_count:6},
+  {name:"arsenic", ref_count:3}
 ]

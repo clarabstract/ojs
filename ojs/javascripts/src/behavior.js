@@ -170,7 +170,7 @@ Behavior.create = function(name_or_methods, methods) {
 */
 
 Behavior.add = function(selector, handler) {
-  if(Object.isString(selector)) {
+  if(handler) {
     if(Object.isArray(handler)) {
       //Applying several handlers for a selector
       for (var i=0; i < handler.length; i++) {
@@ -178,7 +178,7 @@ Behavior.add = function(selector, handler) {
       };
       return;
     }
-    if(r = selector.match(/^(.*?)::(.*)$/)){
+    if(Object.isString(selector) && (r = selector.match(/^(.*?)::(.*)$/))){
       //Applying a handler function directly
       Event.observeElements(r[1], r[2], handler)
     } else {
@@ -206,8 +206,10 @@ Behavior.addModule = function(selector, module) {
   if(module.addedToSelector)  module.addedToSelector(selector) ;
   for(m in module) {
     var r;
-    if( r = m.match(/^::(.*)/) ) {      
-      Event.observeElements(selector, r[1], module[m]) 
+    if( r = m.match(/^::(.*)/) ) {
+      var observe = Event.observeElements.curry(selector, r[1])
+      if(module[m].each)  module[m].each(observe)
+      else                observe(module[m])
     }
   }
 }
@@ -232,10 +234,14 @@ EventExtentions = {
   // Also allows re-application of events after a page update.
   // (Note: usually Event.observeElements should be used instead - use this only to force direct observing even if delegation is possible)
   observeElementsDirectly: function(sel, eventName, handler) {
-    EventCache[sel] = EventCache[sel] || {}
-    EventCache[sel][eventName] = EventCache[sel][eventName] || []
-    EventCache[sel][eventName].push(handler)
-    $$(sel).each(Event._observeElementDirect.rightCurry(1, eventName, handler, sel))
+    if(Object.isString(sel)) {
+      EventCache[sel] = EventCache[sel] || {}
+      EventCache[sel][eventName] = EventCache[sel][eventName] || []
+      EventCache[sel][eventName].push(handler)
+      sel == $$(sel)
+    }    
+    if(!sel.each) sel = [sel]
+    sel.each(Event._observeElementDirect.rightCurry(1, eventName, handler))
   },
   // Call this to re-apply any event observing selectors for a new element.
   // ***ONLY NEEDED IF YOU'RE NOT USING DELEGATED EVENTS***
@@ -248,14 +254,15 @@ EventExtentions = {
         for(eventName in EventCache[sel]) {
           var handlers = EventCache[sel][eventName]
           for (var j=0; j < handlers.length; j++) {
-            Event._observeElementDirect(matchingElements[i],eventName, handlers[j], sel)
+            Event._observeElementDirect(matchingElements[i],eventName, handlers[j])
           };
         }
       };
     }
   },
   // PRIVATE - allows us to perform additional work before Event.observe()
-  _observeElementDirect: function(element, eventName, handler, selector){
+  _observeElementDirect: function(element, eventName, handler){
+    console.log('_oED', element, eventName, handler)
     if(Event._checkDuplicateClassIdentifier(element, handler)) {
       Event.observe(element, eventName, handler);
     }
@@ -274,7 +281,7 @@ EventExtentions = {
         element.attachedBehaviors[clId] = handler.behavior
         attachmentCallback = handler.behavior.attachedToElement
       }
-    } catch (e) { return true; }
+    } catch (e) { console.log('e', e); return true; }
     if(attachmentCallback) attachmentCallback(element);
     return true; 
   },
@@ -314,11 +321,14 @@ EventExtentions = {
   observeElements: function(sel, eventString, handler) {
     var r = eventString.match(/(.*?)(\((.*?)\))?(-(direct|delegated))?$/)
     var eventName = r[1]; var filterParam = r[3]; var forceMethod = r[5];
-    
-    var observeMethod = Event.doesNotBubble[eventName] ? Event.observeElementsDirectly : Event.observeElementsWithDelegation
-    if(forceMethod == "direct") observeMethod = Event.observeElementsDirectly
-    if(forceMethod == "delegated") observeMethod = Event.observeElementsWithDelegation
-
+    if(Object.isString(sel)) {
+      var observeMethod = Event.doesNotBubble[eventName] ? Event.observeElementsDirectly : Event.observeElementsWithDelegation
+      if(forceMethod == "direct") observeMethod = Event.observeElementsDirectly
+      if(forceMethod == "delegated") observeMethod = Event.observeElementsWithDelegation 
+    } else {
+      // Selector must be a direct element reference (or array of them) so always use direct observation.
+      observeMethod = Event.observeElementsDirectly;
+    }
     // console.log("Observe", sel, "::"+eventName, observeMethod == Event.observeElementsDirectly ? "direct" : "delegated", filterParam ? (" with filter (" + filterParam) + ")" : "",   EventFilters[eventName] )
     if(filterParam && (filterFunctions = EventFilters[eventName]) ) {
       observeMethod(sel, eventName, Event._filterHandler(filterFunctions, filterParam, handler) )
@@ -336,7 +346,7 @@ EventExtentions = {
       try{
         if(handler) DelegatesBySelectorCache[selector][eventName].remove(handler);
         else        DelegatesBySelectorCache[selector][eventName].clear();
-      } catch(e){}
+      } catch(e){console.log('e', e)}
       if(EventCache[selector] && EventCache[selector][eventName] ) {
         if(handler) EventCache[selector][eventName].remove(handler);
         else        delete EventCache[selector][eventName];

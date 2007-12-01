@@ -1,0 +1,64 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+   "http://www.w3.org/TR/html4/strict.dtd">
+
+<html lang="en">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <script src="../lib/prototype.js" type="text/javascript"></script>
+  <script src="../src/utilities.js" type="text/javascript"></script>
+  <script src="../src/behavior.js" type="text/javascript"></script>
+  <script src="../src/auto_complete.js" type="text/javascript"></script>
+  <title>auto_complete_test</title>
+  <meta name="generator" content="TextMate http://macromates.com/">
+  <meta name="author" content="Ruy Asan">
+  <!-- Date: 2007-11-21 -->
+  <style type="text/css" media="screen">
+    #completions {
+      background: #ccc;
+      border:2px solid #999;
+      position:absolute;
+      list-style: none;
+      margin:0;
+      padding:0;
+    }
+    #completions li {
+      padding: 4px;
+      list-style: none;
+      cursor: pointer;
+    }
+    .marked {
+      background:yellow;
+    }
+  </style>
+</head>
+<body>
+  <ol id="completions" style="display:none;">
+    sup
+  </ol>
+  Category: 
+  <input class="category" /><br />
+  Tags: 
+  <input id="t" class="tags" /><br />
+  <pre id="log">
+  </pre>
+  <script type="text/javascript" charset="utf-8">
+  function log(lbl, val) {
+    $('log').insert({top:(lbl+":").bold()+val+"<br />\n"})
+
+  }
+  function DONE (ans) {
+    console.log('DONE', ans)
+  }
+  
+  dsa = new DataSource.Ajax.AutoComplete("data.json")
+  box = $('completions')
+  Object.extend(box, Element.Extentions.DisplayData)
+  Object.extend(box, Element.Extentions.DropDown)
+  box.recordTemplate = new Template('<li>#{name}<span class="ref_count">#{ref_count} items</span></li>').functionize()
+  
+  
+  Behavior.add(".category", new AutoComplete(dsa, box))
+  
+  </script>
+</body>
+</html>
