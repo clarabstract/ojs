@@ -24,16 +24,13 @@ MonitorChange = Behavior.create("change:value", {
     this.wireToEvents("checkValue", "keyup", "mouseup")
   },
   recordValue: function(element, event) {
-    log('rec',element.value)
     element.originalValue = this.getValue(element)
   },
   checkValue: function(element, event) {
-        log('wtf', element.originalValue + ":::"+ this.getValue(element));
     if(element.originalValue != this.getValue(element)) this.fire(element);
   },
   fire: function(element) {
-            log('fired', "")
-    // element.fire(this.constructor.classIdentifier)
+    element.fire(this.constructor.classIdentifier)
   },
   getValue: Form.Element.getValue
 })
@@ -133,7 +130,7 @@ Element.Extentions = Element.Extentions || {}
 
 Element.Extentions.DisplayData = {
   setData: function(data) {
-    this.innerHTML = null;
+    this.innerHTML = "";
     data.each(this.addRecord, this)
   },
   addRecord: function(record, index) {
