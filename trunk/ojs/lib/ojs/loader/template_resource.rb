@@ -22,7 +22,8 @@ module OJS
       private
       
       def partial_path
-        last, *path_parts = *@file_path.relative_path_from(Pathname.new(ActionController::Base.view_root)).to_s.sub(/\.\w+$/,'').split(File::SEPARATOR).reverse
+        # raise "PATH: #{Pathname.new(ActionController::Base.view_root)}\nFILE: #{@file_path}\nFILE2: #{file_path}"
+        last, *path_parts = *@file_path.realpath.relative_path_from(Pathname.new(ActionController::Base.view_root)).to_s.sub(/\.\w+$/,'').split(File::SEPARATOR).reverse
         last.sub!(/^\_/,'')
         (path_parts.reverse + [last]).join(File::SEPARATOR)
       end

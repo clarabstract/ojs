@@ -238,7 +238,7 @@ EventExtentions = {
       EventCache[sel] = EventCache[sel] || {}
       EventCache[sel][eventName] = EventCache[sel][eventName] || []
       EventCache[sel][eventName].push(handler)
-      sel == $$(sel)
+      sel = $$(sel)
     }    
     if(!sel.each) sel = [sel]
     sel.each(Event._observeElementDirect.rightCurry(1, eventName, handler))
