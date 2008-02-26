@@ -38,7 +38,6 @@ MonitorChange = Behavior.create("change:value", {
 DataSource = {}
 // Abstract Base class - defines minimum protocol
 DataSource.Base = Class.create({
-  initialize: Prototype.emptyFunction,
   query: Prototype.emptyFunction, // (params, updateCallback)
   abort: Prototype.emptyFunction,
   yieldResults: function(updateCallback, results) {
@@ -52,8 +51,9 @@ DataSource.Ajax = Class.create(DataSource.Base, {
     this.ajaxOptions.parameters = this.ajaxOptions.parameters || {};
   },
   query: function(params, updateCallback) {
-    Object.extend(this.ajaxOptions.parameters = params || {} )
+    Object.extend(this.ajaxOptions.parameters, params || {} )
     this.ajaxOptions.onComplete = this.ajaxComplete.bind(this, updateCallback);
+    console.log(this.url)
     this.currentRequest = new Ajax.Request(this.url, this.ajaxOptions)
   },
   abort: function() {
@@ -88,7 +88,7 @@ $processing = { }
 // Cache queries for the same params (serialized with Object.toQueryString)
 DataSource.Extentions.QueryCaching = {
   initialize: function($super) {
-    $super(Array.prototype.slice.call(arguments, 1))
+    $super.apply(this, Array.prototype.slice.call(arguments, 1))
     this.queryCache = {}
   },
   query: function($super, params, updateCallback) {
@@ -209,7 +209,7 @@ AutoComplete = Behavior.create({
   completeCurrentWord: function(element, event) {
     this.currentWord = this.getCurrentWord(element)
     this.currentElement = element
-    this.dataSource.query({word: this.currentWord}, this.completionsForWord.bind(this))
+    this.dataSource.query({prefix: this.currentWord}, this.completionsForWord.bind(this))
   },
   getCurrentWord: Form.Element.getValue,
   completionsForWord: function(completions) {
